@@ -1,16 +1,12 @@
 ## Attack
 ```shell
-cd CODA/VulnerabilityPrediction/code/;
+cd CODA/FunctionalityClassification/code/;
 
 CUDA_VISIBLE_DEVICES=0 python attack.py \
-    --eval_data_file=../dataset/dataset/test_subs_0_400.jsonl \
+    --eval_data_file=../dataset/test.txt \
     --model_name=codebert;
     
 CUDA_VISIBLE_DEVICES=0 python attack.py \
-    --eval_data_file=../dataset/dataset/test_subs_0_400.jsonl \
+    --eval_data_file=../dataset/test.txt \
     --model_name=graphcodeber;
 ```
-
-
-
-
