@@ -1,7 +1,7 @@
 ## Attack
 
 ```shell
-cd CODA/AuthorshipAttribution/code/;
+cd CODA/attack/AuthorshipAttribution/code/;
 
 CUDA_VISIBLE_DEVICES=0 python attack.py \
     --eval_data_file=../dataset/data_folder/processed_gcjpy/valid.txt \

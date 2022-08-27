@@ -1,6 +1,6 @@
 ## Attack
 ```shell
-cd CODA/DefectPrediction/code/;
+cd CODA/attack/DefectPrediction/code/;
 
 CUDA_VISIBLE_DEVICES=0 python attack.py \
     --eval_data_file=../dataset/test.txt \

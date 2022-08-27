@@ -27,7 +27,7 @@ Run python attack.py in each directory to attack the deep code models.
 E.g., run the following commands to attack the CodeBERT model on Vulnerability Prediction.
 
 ```shell
-cd CODA/VulnerabilityPrediction/code/;
+cd CODA/attack/VulnerabilityPrediction/code/;
 CUDA_VISIBLE_DEVICES=0 python attack.py --eval_data_file=../dataset/dataset/test_subs_0_400.jsonl --model_name=codebert;
 ```
 
