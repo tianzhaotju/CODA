@@ -67,7 +67,7 @@ We refer to the README.md files under each folder to attack models on different 
 
 
 ####  (4) Robustness improvement of the target models after adversarial fine-tuning.
-<img src="./figs/adv.png" alt="drawing" width="1000">
+<img src="./figs/retrain.png" alt="drawing" width="1000">
 
 --- --- ---
 
