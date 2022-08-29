@@ -10,8 +10,8 @@ sys.path.append('../../../python_parser')
 from python_parser.run_parser import get_identifiers, remove_comments_and_docstrings, get_example_batch
 from utils import _tokenize
 from transformers import (RobertaForMaskedLM, RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer, RobertaModel)
-sys.path.append('../')
-sys.path.append('../code/')
+# sys.path.append('../')
+# sys.path.append('../code/')
 from model import CodeBERT, GraphCodeBERT
 from run import CodeBertTextDataset, GraphCodeBertTextDataset
 import numpy as np
@@ -28,12 +28,12 @@ def get_embeddings(code, variables, tokenizer_mlm, codebert_mlm, args):
     chromesome = {}
     for i in variables:
         chromesome[i] = '<unk>'
-    new_code = get_example_batch(new_code, chromesome, "c")
+    new_code = get_example_batch(new_code, chromesome, "java")
 
     # for tgt_word in variables:
     #     new_code = get_example(new_code, tgt_word, '<unk>', "c")
 
-    _, code_tokens = get_identifiers(remove_comments_and_docstrings(new_code, "c"), "c")
+    _, _, code_tokens = get_identifiers(remove_comments_and_docstrings(new_code, "java"), "java")
     processed_code = " ".join(code_tokens)
     words, sub_words, keys = _tokenize(processed_code, tokenizer_mlm)
     sub_words = [tokenizer_mlm.cls_token] + sub_words[:args.block_size - 2] + [tokenizer_mlm.sep_token]
@@ -59,26 +59,26 @@ def main():
     # Set seed
     args.seed = 123456
     args.eval_batch_size = 32
-    args.language_type = 'python'
+    args.language_type = 'java'
     args.store_path = './%s_all_subs.json' % args.model_name
-    args.n_gpu = 16
+    args.n_gpu = 2
     args.block_size = 512
 
     if args.model_name == 'codebert':
         args.output_dir = '../code/saved_models'
         args.model_type = 'codebert_roberta'
-        args.config_name = '/workspace/Attack/microsoft/codebert-base'
-        args.model_name_or_path = '/workspace/Attack/microsoft/codebert-base'
-        args.tokenizer_name = '/workspace/Attack/roberta-base'
-        args.base_model = '/workspace/Attack/microsoft/codebert-base-mlm'
+        args.config_name = '/root/Attack/microsoft/codebert-base'
+        args.model_name_or_path = '/root/Attack/microsoft/codebert-base'
+        args.tokenizer_name = '/root/Attack/roberta-base'
+        args.base_model = '/root/Attack/microsoft/codebert-base-mlm'
         args.number_labels = 2
     if args.model_name == 'graphcodebert':
         args.output_dir = '../code/saved_models'
         args.model_type = 'graphcodebert_roberta'
-        args.config_name = '/workspace/Attack/microsoft/graphcodebert-base'
-        args.tokenizer_name = '/workspace/Attack/microsoft/graphcodebert-base'
-        args.model_name_or_path = '/workspace/Attack/microsoft/graphcodebert-base'
-        args.base_model = '/workspace/Attack/microsoft/graphcodebert-base'
+        args.config_name = '/root/Attack/microsoft/graphcodebert-base'
+        args.tokenizer_name = '/root/Attack/microsoft/graphcodebert-base'
+        args.model_name_or_path = '/root/Attack/microsoft/graphcodebert-base'
+        args.base_model = '/root/Attack/microsoft/graphcodebert-base'
         args.code_length = 448
         args.data_flow_length = 64
         args.number_labels = 1
@@ -92,7 +92,7 @@ def main():
                                                 cache_dir=args.cache_dir if args.cache_dir else None)
     if args.block_size <= 0:
         args.block_size = tokenizer.max_len_single_sentence  # Our input block size will be the max possible for the model
-    args.block_size = min(args.block_size, 510)
+    args.block_size = min(args.block_size, tokenizer.max_len_single_sentence)
     if args.model_name_or_path:
         model = model_class.from_pretrained(args.model_name_or_path,
                                             from_tf=bool('.ckpt' in args.model_name_or_path),
@@ -181,8 +181,8 @@ def main():
             code1 = item["code1"]
             code2 = item["code2"]
 
-            variable_name1, function_name1 = get_identifiers(code1, "java")
-            variable_name2, function_name2 = get_identifiers(code2, "java")
+            variable_name1, function_name1, _ = get_identifiers(code1, "java")
+            variable_name2, function_name2, _ = get_identifiers(code2, "java")
 
             variables1 = []
             variables1.extend(variable_name1)

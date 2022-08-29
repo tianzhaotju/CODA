@@ -7,10 +7,10 @@ sys.path.append('../../../')
 sys.path.append('../../../python_parser')
 from python_parser.run_parser import get_identifiers, remove_comments_and_docstrings, get_example_batch
 from transformers import (RobertaConfig, RobertaModel, RobertaTokenizer, RobertaForMaskedLM, RobertaForSequenceClassification)
-sys.path.append('../')
-sys.path.append('../code')
-from ..code.model import CodeBERT, GraphCodeBERT
-from ..code.run import CodeBertTextDataset, GraphCodeBertTextDataset
+# sys.path.append('../')
+# sys.path.append('../code')
+from model import CodeBERT, GraphCodeBERT
+from run import CodeBertTextDataset, GraphCodeBertTextDataset
 import torch
 import numpy as np
 import copy
@@ -28,12 +28,12 @@ def get_embeddings(code, variables, tokenizer_mlm, codebert_mlm, args):
     chromesome = {}
     for i in variables:
         chromesome[i] = '<unk>'
-    new_code = get_example_batch(new_code, chromesome, "c")
+    new_code = get_example_batch(new_code, chromesome, "python")
 
     # for tgt_word in variables:
     #     new_code = get_example(new_code, tgt_word, '<unk>', "c")
 
-    _, code_tokens = get_identifiers(remove_comments_and_docstrings(new_code, "c"), "c")
+    _, _, code_tokens = get_identifiers(remove_comments_and_docstrings(new_code, "python"), "python")
     processed_code = " ".join(code_tokens)
     words, sub_words, keys = _tokenize(processed_code, tokenizer_mlm)
     sub_words = [tokenizer_mlm.cls_token] + sub_words[:args.block_size - 2] + [tokenizer_mlm.sep_token]
@@ -67,18 +67,18 @@ def main():
     if args.model_name == 'codebert':
         args.output_dir = '../code/saved_models'
         args.model_type = 'codebert_roberta'
-        args.config_name = '/workspace/Attack/microsoft/codebert-base'
-        args.model_name_or_path = '/workspace/Attack/microsoft/codebert-base'
-        args.tokenizer_name = '/workspace/Attack/roberta-base'
-        args.base_model = '/workspace/Attack/microsoft/codebert-base-mlm'
+        args.config_name = '/root/Attack/microsoft/codebert-base'
+        args.model_name_or_path = '/root/Attack/microsoft/codebert-base'
+        args.tokenizer_name = '/root/Attack/roberta-base'
+        args.base_model = '/root/Attack/microsoft/codebert-base-mlm'
         args.block_size = 512
     if args.model_name == 'graphcodebert':
         args.output_dir = '../code/saved_models'
         args.model_type = 'graphcodebert_roberta'
-        args.config_name = '/workspace/Attack/microsoft/graphcodebert-base'
-        args.tokenizer_name = '/workspace/Attack/microsoft/graphcodebert-base'
-        args.model_name_or_path = '/workspace/Attack/microsoft/graphcodebert-base'
-        args.base_model = '/workspace/Attack/microsoft/graphcodebert-base'
+        args.config_name = '/root/Attack/microsoft/graphcodebert-base'
+        args.tokenizer_name = '/root/Attack/microsoft/graphcodebert-base'
+        args.model_name_or_path = '/root/Attack/microsoft/graphcodebert-base'
+        args.base_model = '/root/Attack/microsoft/graphcodebert-base'
         args.code_length = 448
         args.data_flow_length = 64
 
@@ -148,9 +148,9 @@ def main():
                 all_labels[true_label] = []
 
             try:
-                variable_name, function_name = get_identifiers(remove_comments_and_docstrings(code, "python"), "python")
+                variable_name, function_name, _ = get_identifiers(remove_comments_and_docstrings(code, "python"), "python")
             except:
-                variable_name, function_name = get_identifiers(code, "python")
+                variable_name, function_name, _ = get_identifiers(code, "python")
 
             variables = []
             variables.extend(variable_name)
