@@ -1,6 +1,6 @@
 ## Attack
 ```shell
-cd CODA/attack/FunctionalityClassification/code/;
+cd /root/Attack/CODA/FunctionalityClassification/code/;
 
 CUDA_VISIBLE_DEVICES=0 python attack.py \
     --eval_data_file=../dataset/test.txt \
@@ -8,5 +8,5 @@ CUDA_VISIBLE_DEVICES=0 python attack.py \
     
 CUDA_VISIBLE_DEVICES=0 python attack.py \
     --eval_data_file=../dataset/test.txt \
-    --model_name=graphcodeber;
+    --model_name=graphcodebert;
 ```

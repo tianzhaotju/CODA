@@ -1,6 +1,6 @@
 ## Attack
 ```shell
-cd CODA/attack/CloneDetection/code/;
+cd /root/Attack/CODA/CloneDetection/code/;
 
 CUDA_VISIBLE_DEVICES=0 python attack.py \
     --eval_data_file=../dataset/test_sampled_0_500.txt \
@@ -8,5 +8,5 @@ CUDA_VISIBLE_DEVICES=0 python attack.py \
     
 CUDA_VISIBLE_DEVICES=0 python attack.py \
     --eval_data_file=../dataset/test_sampled_0_500.txt \
-    --model_name=graphcodeber;
+    --model_name=graphcodebert;
 ```
