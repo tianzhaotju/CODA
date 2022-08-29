@@ -1,5 +1,5 @@
 # CODA
-Code Difference Guided Attacking for Deep Code Models
+### Code Difference Guided Attacking for Deep Code Models
 <img src="./figs/overview.png" alt="drawing" width="800">
 
 --- ---
