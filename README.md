@@ -7,13 +7,15 @@
 ## Docker
 Our experiments were conducted under Ubuntu 20.04. 
 We have made a ready-to-use docker image for this experiment.
+
 ```shell
-docker pull anonymous4open/coda:v1.3
+docker pull anonymous4open/coda:v1.4
 ```
 Then, assuming you have NVIDIA GPUs, you can create a container using this docker image. 
 An example:
+
 ```shell
-docker run --name=coda --gpus all -it --mount type=bind,src=./coda,dst=/workspace anonymous4open/coda:v1.3
+docker run --name=coda --gpus all -it --mount type=bind,src=/home/coda,dst=/workspace anonymous4open/coda:v1.4
 ```
 
 ## Subjects
