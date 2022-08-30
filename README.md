@@ -62,6 +62,8 @@ docker run --name=coda --gpus all -it --mount type=bind,src=/home/coda,dst=/work
 
 --- --- ---
 
+Download the datasets and models -- [subjects](https://drive.google.com/file/d/1D6eJ_5F0x8F6yoJ1F2oOX_qTWegtFRR8/view)
+
 ## Demo
 Let's take the CodeBERT and Authorship Attribution task as an example. 
 The `dataset` folder contains the training and evaluation data for this task. 
