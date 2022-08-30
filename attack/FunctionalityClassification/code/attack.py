@@ -52,17 +52,17 @@ def main():
     if args.model_name == 'codebert':
         args.output_dir = './saved_models'
         args.model_type = 'codebert_roberta'
-        args.config_name = '/root/Attack/microsoft/codebert-base'
-        args.model_name_or_path = '/root/Attack/microsoft/codebert-base'
-        args.tokenizer_name = '/root/Attack/roberta-base'
-        args.base_model = '/root/Attack/microsoft/codebert-base-mlm'
+        args.config_name = 'microsoft/codebert-base'
+        args.model_name_or_path = 'microsoft/codebert-base'
+        args.tokenizer_name = 'roberta-base'
+        args.base_model = 'microsoft/codebert-base-mlm'
     if args.model_name == 'graphcodebert':
         args.output_dir = './saved_models'
         args.model_type = 'graphcodebert_roberta'
-        args.config_name = '/root/Attack/microsoft/graphcodebert-base'
-        args.tokenizer_name = '/root/Attack/microsoft/graphcodebert-base'
-        args.model_name_or_path = '/root/Attack/microsoft/graphcodebert-base'
-        args.base_model = '/root/Attack/microsoft/graphcodebert-base'
+        args.config_name = 'microsoft/graphcodebert-base'
+        args.tokenizer_name = 'microsoft/graphcodebert-base'
+        args.model_name_or_path = 'microsoft/graphcodebert-base'
+        args.base_model = 'microsoft/graphcodebert-base'
         args.code_length = 448
         args.data_flow_length = 64
     set_seed(args)
