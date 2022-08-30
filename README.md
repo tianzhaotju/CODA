@@ -7,11 +7,11 @@
 ### The descriptions and examples of code structure transformation rules in CODA.
 > 1. ***R1-loop***: equivalent transformation among for structure and while structure
 > > (1) `while` loop → `for` loop
-> >
+> >   
 > > (2) `for` loop → `while` loop
 > 2. ***R2-branch***: equivalent transformation between if-else(-if) structure and if-if structure
 > > (1) `if-else-(if)`  → `if-if` 
-> >
+> >   
 > > (2) `if-if`  → `if-else-(if)` 
 > 3. ***R3-calculation***: equivalent numerical calculation transformation, e.g., ++, --, +=, -=, *=, /=, %=, <<=, >>=, &=, |= , ˆ =
 > > (1) `i++`  ↔ `i = i + 1` 
