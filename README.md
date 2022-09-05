@@ -1,8 +1,54 @@
 # CODA
-### Code Difference Guided Attacking for Deep Code Models
+### Folder Structure
+```
+.
+│  README.md
+│  utils.py
+│  
+├─attack
+│  ├─AuthorshipAttribution
+│  │  │  README.md
+│  │  ├─code
+│  │  └─dataset
+│  │          
+│  ├─CloneDetection
+│  │  │  README.md
+│  │  ├─code  
+│  │  └─dataset
+│  │          
+│  ├─DefectPrediction
+│  │  │  README.md
+│  │  ├─code
+│  │  └─dataset
+│  │          
+│  ├─FunctionalityClassification
+│  │  │  README.md
+│  │  ├─code
+│  │  └─dataset
+│  │          
+│  └─VulnerabilityPrediction
+│      │  README.md
+│      ├─code
+│      └─dataset       
+├─figs 
+└─python_parser
+    │  pattern.py
+    │  run_parser.py
+    └─parser_folder
+        ├─tree-sitter-c          
+        ├─tree-sitter-cpp       
+        ├─tree-sitter-java         
+        └─tree-sitter-python
+```
+
+
+
+### Overview
 <img src="./figs/overview.png" alt="drawing" width="800">
 
 --- ---
+
+
 
 ### The descriptions and examples of code structure transformation rules in CODA.
 > 1. ***R1-loop***: equivalent transformation among for structure and while structure
@@ -62,7 +108,7 @@ docker run --name=coda --gpus all -it --mount type=bind,src=/home/coda,dst=/work
 
 --- --- ---
 
-Download the datasets and models -- [subjects](https://drive.google.com/file/d/1D6eJ_5F0x8F6yoJ1F2oOX_qTWegtFRR8/view)
+Download the datasets and models from this [Google Drive Link](https://drive.google.com/file/d/1D6eJ_5F0x8F6yoJ1F2oOX_qTWegtFRR8/view).
 
 ## Demo
 Let's take the CodeBERT and Authorship Attribution task as an example. 
