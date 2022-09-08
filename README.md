@@ -101,6 +101,9 @@ The descriptions and examples of code structure transformation rules in CODA.
         ├─tree-sitter-java         
         └─tree-sitter-python
 ```
+Under each subject's folder in `attack/` (`AuthorshipAttribution/`, `CloneDetection/`, `DefectPrediction/`, `FunctionalityClassification/`, and `VulnerabilityPrediction/`), there are two folders (`code/` and `dataset/`) and one file (`README.md`). The original dataset and data processing programs (`get_reference.py`) are stored in the `dataset/` directory. The `code/` directory contains the attack codes (`attack.py` and `attacker.py`). The `README.md` file contains commands for data processing and attack. 
+In the `python_parser/` directory, there is tree-sitter, a parse tree generation tool. And we use this tool to implement parsing tools in multiple programming languages (`C/C++`, `Java`, and `Python`).
+
 
 
 ## Environment Configuration
