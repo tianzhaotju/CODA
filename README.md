@@ -110,6 +110,7 @@ In the `python_parser/` directory, there is tree-sitter, a parse tree generation
 ### Docker
 Our experiments were conducted under Ubuntu 20.04. 
 We have made a ready-to-use docker image for this experiment.
+And you can find the fine-tuned models and datasets.
 
 ```shell
 docker pull anonymous4open/coda:v1.4
@@ -127,7 +128,7 @@ docker run --name=coda --gpus all -it --mount type=bind,src=/home/coda,dst=/work
 
 --- --- ---
 
-Download the datasets and models from this [Google Drive Link](https://drive.google.com/file/d/1D6eJ_5F0x8F6yoJ1F2oOX_qTWegtFRR8/view).
+Download the fine-tuned models from this [Google Drive Link](https://drive.google.com/file/d/1NsRa1PvnoOQmJj-Gj4L8msqXcBz_QT3Y/view?usp=sharing).
 
 
 
