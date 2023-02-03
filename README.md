@@ -184,9 +184,13 @@ We further performed a Wilcoxon test at the 0.05 significance level between CODA
 <img src="./figs/ablation.png" alt="drawing" width="1000">
 
 We constructed four variants of CODA:
+
 • w/o RIS: we replaced RIS with the method that randomly selects 𝑁 inputs from training data as reference inputs.
+
 • w/o EST: we removed EST from CODA, i.e., it directly performs identifier renaming transformations after selecting reference inputs.
+
 • w/o CDG (code difference guidance in EST): we replaced the code-difference-guided strategy used for EST in CODA with randomly selecting rules for EST.
+
 • w/o IRT: we removed IRT from CODA, i.e., it directly checks whether a successfully-attacking example is generated after equivalent structure transformations.
 
 --- --- ---
