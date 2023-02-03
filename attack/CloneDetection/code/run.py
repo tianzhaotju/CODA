@@ -138,6 +138,16 @@ class GraphCodeBertInputFeatures(object):
         self.url2 = url2
 
 
+class CodeT5InputFeatures(object):
+    """A single training/test features for a example."""
+    def __init__(self, input_tokens, input_ids, label, url1, url2):
+        self.input_tokens = input_tokens
+        self.input_ids = input_ids
+        self.label = label
+        self.url1 = url1
+        self.url2 = url2
+
+
 def codebert_convert_examples_to_features(code1_tokens,code2_tokens,label,url1,url2,tokenizer,args,cache):
     #source
     code1_tokens=code1_tokens[:args.block_size-2]
@@ -207,6 +217,26 @@ def graphcodebert_convert_examples_to_features(item):
     source_tokens_1, source_ids_1, position_idx_1, dfg_to_code_1, dfg_to_dfg_1 = cache[url1]
     source_tokens_2, source_ids_2, position_idx_2, dfg_to_code_2, dfg_to_dfg_2 = cache[url2]
     return GraphCodeBertInputFeatures(source_tokens_1, source_ids_1, position_idx_1, dfg_to_code_1, dfg_to_dfg_1, source_tokens_2, source_ids_2, position_idx_2, dfg_to_code_2, dfg_to_dfg_2, label, url1, url2)
+
+
+def codet5_convert_examples_to_features(code1_tokens, code2_tokens, label, url1, url2, tokenizer, args, cache):
+    # source
+    code1_tokens = code1_tokens[:args.block_size - 2]
+    code1_tokens = [tokenizer.cls_token] + code1_tokens + [tokenizer.sep_token]
+    code2_tokens = code2_tokens[:args.block_size - 2]
+    code2_tokens = [tokenizer.cls_token] + code2_tokens + [tokenizer.sep_token]
+
+    code1_ids = tokenizer.convert_tokens_to_ids(code1_tokens)
+    padding_length = args.block_size - len(code1_ids)
+    code1_ids += [tokenizer.pad_token_id] * padding_length
+
+    code2_ids = tokenizer.convert_tokens_to_ids(code2_tokens)
+    padding_length = args.block_size - len(code2_ids)
+    code2_ids += [tokenizer.pad_token_id] * padding_length
+
+    source_tokens = code1_tokens + code2_tokens
+    source_ids = code1_ids + code2_ids
+    return CodeT5InputFeatures(source_tokens, source_ids, label, url1, url2)
 
 
 class CodeBertTextDataset(Dataset):
@@ -384,6 +414,66 @@ class GraphCodeBertTextDataset(Dataset):
                 torch.tensor(self.examples[item].label))
 
 
+class CodeT5TextDataset(Dataset):
+    def __init__(self, tokenizer, args, file_path='train', block_size=512, pool=None):
+        postfix = file_path.split('/')[-1].split('.txt')[0]
+        self.examples = []
+        index_filename = file_path
+        url_to_code = {}
+        folder = '/'.join(file_path.split('/')[:-1])
+
+        cache_file_path = os.path.join(folder, '{}_cached_{}'.format(args.model_name, postfix))
+        code_pairs_file_path = os.path.join(folder, '{}_cached_{}.pkl'.format(args.model_name, postfix))
+        code_pairs = []
+        try:
+            self.examples = torch.load(cache_file_path)
+            with open(code_pairs_file_path, 'rb') as f:
+                code_pairs = pickle.load(f)
+        except:
+            if os.path.exists('/'.join(index_filename.split('/')[:-1]) + '/adv_data.jsonl'):
+                with open('/'.join(index_filename.split('/')[:-1]) + '/adv_data.jsonl') as f:
+                    for line in f:
+                        line = line.strip()
+                        js = json.loads(line)
+                        url_to_code[js['idx']] = js['func']
+            else:
+                with open('/'.join(index_filename.split('/')[:-1]) + '/data.jsonl') as f:
+                    for line in f:
+                        line = line.strip()
+                        js = json.loads(line)
+                        url_to_code[js['idx']] = js['func']
+            data = []
+            cache = {}
+            with open(index_filename) as f:
+                for line in f:
+                    line = line.strip()
+                    url1, url2, label = line.split('\t')
+                    if url1 not in url_to_code or url2 not in url_to_code:
+                        continue
+                    if label == '0':
+                        label = 0
+                    else:
+                        label = 1
+                    data.append((url1, url2, label, tokenizer, args, cache, url_to_code))
+            for sing_example in data:
+                code_pairs.append([sing_example[0],
+                                   sing_example[1],
+                                   url_to_code[sing_example[0]],
+                                   url_to_code[sing_example[1]]])
+            with open(code_pairs_file_path, 'wb') as f:
+                pickle.dump(code_pairs, f)
+            pool = multiprocessing.Pool(7)
+            self.examples = pool.map(get_example, tqdm(data, total=len(data)))
+            torch.save(self.examples, cache_file_path)
+
+    def __len__(self):
+        return len(self.examples)
+
+    def __getitem__(self, item):
+
+        return torch.tensor(self.examples[item].input_ids), torch.tensor(self.examples[item].label)
+
+
 def load_and_cache_examples(args, tokenizer, evaluate=False,test=False,pool=None):
     dataset = CodeBertTextDataset(tokenizer, args, file_path=args.test_data_file if test else (args.eval_data_file if evaluate else args.train_data_file),block_size=args.block_size,pool=pool)
     return dataset
@@ -400,3 +490,7 @@ def set_seed(args):
     elif args.model_name == 'graphcodebert':
         if args.n_gpu > 0:
             torch.cuda.manual_seed_all(args.seed)
+    elif args.model_name == 'codet5':
+        os.environ['PYHTONHASHSEED'] = str(args.seed)
+        torch.cuda.manual_seed(args.seed)
+        torch.backends.cudnn.deterministic = True

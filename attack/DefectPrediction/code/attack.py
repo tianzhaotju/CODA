@@ -7,13 +7,11 @@ import json
 import argparse
 import warnings
 import torch
-import numpy as np
-from run import set_seed
-from run import CodeBertTextDataset, GraphCodeBertTextDataset
-from model import CodeBERT, GraphCodeBERT
+from run import set_seed, CodeBertTextDataset, GraphCodeBertTextDataset, CodeT5TextDataset
+from model import CodeBERT, GraphCodeBERT, CodeT5
 from attacker import Attacker
-from transformers import RobertaForMaskedLM
-from transformers import (RobertaConfig, RobertaModel, RobertaTokenizer, RobertaForSequenceClassification)
+from transformers import (RobertaForMaskedLM, RobertaConfig, RobertaModel, RobertaTokenizer,
+                          RobertaForSequenceClassification, T5Config, T5ForConditionalGeneration)
 import fasttext
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.simplefilter(action='ignore', category=FutureWarning) # Only report warning\
@@ -21,6 +19,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning) # Only report war
 MODEL_CLASSES = {
     'codebert_roberta': (RobertaConfig, RobertaModel, RobertaTokenizer),
     'graphcodebert_roberta': (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
+    'codet5': (T5Config, T5ForConditionalGeneration, RobertaTokenizer)
 }
 
 
@@ -64,6 +63,13 @@ def main():
         args.base_model = 'microsoft/graphcodebert-base'
         args.code_length = 448
         args.data_flow_length = 64
+    if args.model_name == 'codet5':
+        args.output_dir = './saved_models'
+        args.model_type = 'codet5'
+        args.config_name = 'Salesforce/codet5-base-multi-sum'
+        args.model_name_or_path = 'Salesforce/codet5-base-multi-sum'
+        args.tokenizer_name = 'Salesforce/codet5-base-multi-sum'
+        args.base_model = 'microsoft/codebert-base-mlm'
     set_seed(args)
     ## Load Target Model
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
@@ -90,6 +96,8 @@ def main():
         model = CodeBERT(model, config, tokenizer, args)
     elif args.model_name == 'graphcodebert':
         model = GraphCodeBERT(model, config, tokenizer, args)
+    elif args.model_name == 'codet5':
+        model = CodeT5(model, config, tokenizer, args)
     checkpoint_prefix = 'checkpoint-best-f1/%s_model.bin' % args.model_name
     output_dir = os.path.join(args.output_dir, '{}'.format(checkpoint_prefix))  
     model.load_state_dict(torch.load(output_dir))      
@@ -100,6 +108,8 @@ def main():
         eval_dataset = CodeBertTextDataset(tokenizer, args, args.eval_data_file)
     elif args.model_name == 'graphcodebert':
         eval_dataset = GraphCodeBertTextDataset(tokenizer, args, args.eval_data_file)
+    elif args.model_name == 'codet5':
+        eval_dataset = CodeT5TextDataset(tokenizer, args, args.eval_data_file)
 
     # load fasttext
     fasttext_model = fasttext.load_model("../../../fasttext_model.bin")

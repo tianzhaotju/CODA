@@ -1,14 +1,13 @@
-import random
 import sys
 sys.path.append('../../../')
 sys.path.append('../../../python_parser')
 import torch
 import copy
-from run import codebert_convert_examples_to_features, GraphCodeBertInputFeatures
+from run import codebert_convert_examples_to_features, codet5_convert_examples_to_features, GraphCodeBertInputFeatures
 import numpy as np
-from utils import CodeDataset, CodePairDataset, _tokenize, get_edits_similarity
-from run_parser import get_identifiers, get_identifiers_ori, get_example, get_example_batch, get_code_style, change_code_style, remove_comments_and_docstrings, extract_dataflow
-import time
+from utils import CodeDataset, CodePairDataset, CodeT5Dataset, _tokenize
+from run_parser import get_identifiers, get_identifiers_ori, get_example, get_example_batch, get_code_style, \
+    change_code_style, remove_comments_and_docstrings, extract_dataflow
 
 
 def graphcodebert_convert_code_to_features(code1, code2, tokenizer, label, args):
@@ -94,6 +93,8 @@ class Attacker():
             true_label = example[1].item()
         elif self.args.model_name == 'graphcodebert':
             true_label = example[6].item()
+        elif self.args.model_name == 'codet5':
+            true_label = example[1].item()
 
         variable_names1, function_names1, _ = get_identifiers(code1, "java")
         variable_names2, function_names2, _ = get_identifiers(code2, "java")
@@ -127,7 +128,12 @@ class Attacker():
         cos = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
         for sub in random_subs:
             embeddings_index = sub['embeddings_index']
-            embeddings1 = np.load('../dataset/%s_all_subs/%s_%s_%s.npy' % (self.args.model_name, sub['label'], embeddings_index, '1'))
+            if self.args.model_name in ['codebert', 'codet5']:
+                embeddings1 = np.load(
+                    '../dataset/codebert_all_subs/%s_%s_%s.npy' % (sub['label'], embeddings_index, '1'))
+            elif self.args.model_name in ['graphcodebert']:
+                embeddings1 = np.load(
+                    '../dataset/graphcodebert_all_subs/%s_%s_%s.npy' % (sub['label'], embeddings_index, '1'))
             embeddings1 = torch.from_numpy(embeddings1).cuda()
             embeddings2 = get_embeddings(sub['code2'], [], self.tokenizer_mlm, self.codebert_mlm)
             embeddings1 = torch.nn.functional.pad(embeddings1, [0, 0, 0, 512 - np.shape(embeddings1)[1]])
@@ -173,6 +179,13 @@ class Attacker():
                                                            self.tokenizer_tgt,
                                                            example[6].item(),
                                                            self.args)
+                elif self.args.model_name == 'codet5':
+                    new_feature = codet5_convert_examples_to_features(temp_code,
+                                                               words2,
+                                                               example[1].item(),
+                                                               None, None,
+                                                               self.tokenizer_tgt,
+                                                               self.args, None)
                 replace_examples.append(new_feature)
 
             for i in range(1):
@@ -198,6 +211,13 @@ class Attacker():
                                                                                  self.tokenizer_tgt,
                                                                                  example[6].item(),
                                                                                  self.args)
+                        elif self.args.model_name == 'codet5':
+                            new_feature = codet5_convert_examples_to_features(temp_code,
+                                                                                words2,
+                                                                                example[1].item(),
+                                                                                None, None,
+                                                                                self.tokenizer_tgt,
+                                                                                self.args, None)
                         replace_examples.append(new_feature)
                         temp_code = temp_code_ori
 
@@ -221,6 +241,13 @@ class Attacker():
                                                                                  self.tokenizer_tgt,
                                                                                  example[6].item(),
                                                                                  self.args)
+                        elif self.args.model_name == 'codet5':
+                            new_feature = codet5_convert_examples_to_features(temp_code,
+                                                                                words2,
+                                                                                example[1].item(),
+                                                                                None, None,
+                                                                                self.tokenizer_tgt,
+                                                                                self.args, None)
                         replace_examples.append(new_feature)
                         temp_code = temp_code_ori
                     all_code_csc.append(all_code[-1])
@@ -232,6 +259,8 @@ class Attacker():
                 new_dataset = CodeDataset(replace_examples)
             elif self.args.model_name == 'graphcodebert':
                 new_dataset = CodePairDataset(replace_examples, self.args)
+            elif self.args.model_name == 'codet5':
+                new_dataset = CodeT5Dataset(replace_examples)
             logits, preds = self.model_tgt.get_results(new_dataset, self.args.eval_batch_size)
 
             final_code = None
@@ -268,12 +297,21 @@ class Attacker():
                                                                          self.tokenizer_tgt,
                                                                          example[6].item(),
                                                                          self.args)
+                elif self.args.model_name == 'codet5':
+                    new_feature = codet5_convert_examples_to_features(temp_code,
+                                                                        words2,
+                                                                        example[1].item(),
+                                                                        None, None,
+                                                                        self.tokenizer_tgt,
+                                                                        self.args, None)
                 replace_examples.append(new_feature)
 
             if self.args.model_name == 'codebert':
                 new_dataset = CodeDataset(replace_examples)
             elif self.args.model_name == 'graphcodebert':
                 new_dataset = CodePairDataset(replace_examples, self.args)
+            elif self.args.model_name == 'codet5':
+                new_dataset = CodeT5Dataset(replace_examples)
             logits, preds = self.model_tgt.get_results(new_dataset, self.args.eval_batch_size)
 
             for index, temp_prob in enumerate(logits):

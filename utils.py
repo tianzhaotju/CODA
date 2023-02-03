@@ -510,6 +510,17 @@ class GraphCodeDataset(Dataset):
               torch.tensor(self.examples[item].label))
 
 
+class CodeT5Dataset(Dataset):
+    def __init__(self, examples):
+        self.examples = examples
+
+    def __len__(self):
+        return len(self.examples)
+
+    def __getitem__(self, i):
+        return torch.tensor(self.examples[i].input_ids), torch.tensor(self.examples[i].label)
+
+
 class CodePairDataset(Dataset):
     def __init__(self, examples, args):
         self.examples = examples

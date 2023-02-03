@@ -23,4 +23,8 @@ CUDA_VISIBLE_DEVICES=0 python attack.py \
 CUDA_VISIBLE_DEVICES=0 python attack.py \
     --eval_data_file=../dataset/data_folder/processed_gcjpy/valid.txt \
     --model_name=graphcodebert;
+
+CUDA_VISIBLE_DEVICES=0 python attack.py \
+    --eval_data_file=../dataset/data_folder/processed_gcjpy/valid.txt \
+    --model_name=codet5;
 ```

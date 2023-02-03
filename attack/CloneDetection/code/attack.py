@@ -8,17 +8,19 @@ import argparse
 import warnings
 import pickle
 import torch
-from model import CodeBERT, GraphCodeBERT
-from run import CodeBertTextDataset, GraphCodeBertTextDataset, set_seed
+from model import CodeBERT, GraphCodeBERT, CodeT5
+from run import CodeBertTextDataset, GraphCodeBertTextDataset, CodeT5TextDataset, set_seed
 from attacker import Attacker
-from transformers import (RobertaConfig, RobertaModel, RobertaTokenizer, RobertaForMaskedLM, RobertaForSequenceClassification)
+from transformers import (RobertaConfig, RobertaModel, RobertaTokenizer, RobertaForMaskedLM,
+                          RobertaForSequenceClassification, T5Config, T5ForConditionalGeneration)
 import fasttext
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.simplefilter(action='ignore', category=FutureWarning) # Only report warning
 
 MODEL_CLASSES = {
     'codebert_roberta': (RobertaConfig, RobertaModel, RobertaTokenizer),
-    'graphcodebert_roberta': (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer)
+    'graphcodebert_roberta': (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
+    'codet5': (T5Config, T5ForConditionalGeneration, RobertaTokenizer)
 }
 
 
@@ -71,6 +73,14 @@ def main():
         args.code_length = 448
         args.data_flow_length = 64
         args.number_labels = 1
+    if args.model_name == 'codet5':
+        args.output_dir = './saved_models'
+        args.model_type = 'codet5'
+        args.config_name = 'Salesforce/codet5-base-multi-sum'
+        args.model_name_or_path = 'Salesforce/codet5-base-multi-sum'
+        args.tokenizer_name = 'Salesforce/codet5-base-multi-sum'
+        args.base_model = 'microsoft/codebert-base-mlm'
+        args.number_labels = 2
 
     # Set seed
     set_seed(args)
@@ -96,6 +106,8 @@ def main():
         model = CodeBERT(model, config, tokenizer, args)
     elif args.model_name == 'graphcodebert':
         model = GraphCodeBERT(model, config, tokenizer, args)
+    elif args.model_name == 'codet5':
+        model = CodeT5(model, config, tokenizer, args)
 
     checkpoint_prefix = 'checkpoint-best-f1/%s_model.bin' % args.model_name
     output_dir = os.path.join(args.output_dir, '{}'.format(checkpoint_prefix))
@@ -118,6 +130,8 @@ def main():
         eval_dataset = CodeBertTextDataset(tokenizer, args, args.eval_data_file)
     elif args.model_name == 'graphcodebert':
         eval_dataset = GraphCodeBertTextDataset(tokenizer, args, args.eval_data_file)
+    elif args.model_name == 'codet5':
+        eval_dataset = CodeT5TextDataset(tokenizer, args, args.eval_data_file)
     print(len(eval_dataset), len(source_codes))
     success_attack = 0
     total_cnt = 0
