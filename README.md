@@ -151,14 +151,14 @@ We refer to the README.md files under each folder to prepare the dataset and att
 
 ### Experimental Results
 
-####  (1) Comparison results of Attack Success Rate (ASR) on attacking CodeBERT and GraphCodeBERT across five tasks.
+####  (1) Comparison results of Attack Success Rate (ASR) on attacking CodeBERT, GraphCodeBERT, and CodeT5 across five tasks.
 <img src="./figs/asr.png" alt="drawing" width="1000">
 
 --- --- ---
 
 
 
-####  (2) Comparison results of prediction confidence decrement (PCD) and invocations on attacking CodeBERT and GraphCodeBERT.
+####  (2) Comparison results of prediction confidence decrement (PCD) and invocations on attacking CodeBERT, GraphCodeBERT, and CodeT5 .
 <img src="./figs/pcd_inv.png" alt="drawing" width="1000">
 
 --- --- ---
@@ -183,11 +183,17 @@ We further performed a Wilcoxon test at the 0.05 significance level between CODA
 ####  (5) We investigated the contribution of each main component in CODA, including reference inputs selection (RIS), equivalent structure transformations (EST), and identifier renaming transformations (IRT).
 <img src="./figs/ablation.png" alt="drawing" width="1000">
 
+We constructed four variants of CODA:
+• w/o RIS: we replaced RIS with the method that randomly selects 𝑁 inputs from training data as reference inputs.
+• w/o EST: we removed EST from CODA, i.e., it directly performs identifier renaming transformations after selecting reference inputs.
+• w/o CDG (code difference guidance in EST): we replaced the code-difference-guided strategy used for EST in CODA with randomly selecting rules for EST.
+• w/o IRT: we removed IRT from CODA, i.e., it directly checks whether a successfully-attacking example is generated after equivalent structure transformations.
+
 --- --- ---
 
 
 
-#### (6) The influence of U in terms of average ASR across all the tasks.
+#### (6) The influence of U in terms of average ASR across all the subjects.
 <img src="./figs/U.png" alt="drawing" width="800">
 
 --- ---
@@ -195,11 +201,11 @@ We further performed a Wilcoxon test at the 0.05 significance level between CODA
 
 
 
-#### (7) The influence of N in terms of average ASR across all the tasks.
+#### (7) The influence of N in terms of average ASR across all the subjects.
 <img src="./figs/N.png" alt="drawing" width="1000">
 
 --- ---
 
 
 ## Acknowledgement
-We are very grateful that the authors of Tree-sitter, CodeBERT, GraphCodeBERT, ALERT, and CARROT make their code publicly available so that we can build this repository on top of their code. 
+We are very grateful that the authors of Tree-sitter, CodeBERT, GraphCodeBERT, CodeT5, ALERT, and CARROT make their code publicly available so that we can build this repository on top of their code. 
