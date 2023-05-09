@@ -1,6 +1,6 @@
 ## Preparing the Dataset
 ```shell
-cd /root/Attack/CODA/DefectPrediction/dataset/;
+cd /root/Attack/CODA/FunctionalityClassification/dataset/;
 
 python get_reference.py \
     --all_data_file=../dataset/all.txt \
@@ -11,19 +11,19 @@ python get_reference.py \
     --model_name=graphcodebert;
 ```
 
-## Adversarial Attack
+## Testing
 ```shell
-cd /root/Attack/CODA/DefectPrediction/code/;
+cd /root/Attack/CODA/FunctionalityClassification/code/;
 
-CUDA_VISIBLE_DEVICES=0 python attack.py \
+CUDA_VISIBLE_DEVICES=0 python test.py \
     --eval_data_file=../dataset/test.txt \
     --model_name=codebert;
     
-CUDA_VISIBLE_DEVICES=0 python attack.py \
+CUDA_VISIBLE_DEVICES=0 python test.py \
     --eval_data_file=../dataset/test.txt \
     --model_name=graphcodebert;
 
-CUDA_VISIBLE_DEVICES=0 python attack.py \
+CUDA_VISIBLE_DEVICES=0 python test.py \
     --eval_data_file=../dataset/test.txt \
     --model_name=codet5;
 ```
