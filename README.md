@@ -128,7 +128,7 @@ docker run --name=coda --gpus all -it --mount type=bind,src=/home/coda,dst=/work
 
 --- --- ---
 
-Download the fine-tuned models from this [Google Drive Link](https://drive.google.com/file/d/1NsRa1PvnoOQmJj-Gj4L8msqXcBz_QT3Y/view?usp=sharing).
+Download all the fine-tuned models and datasets from this [Google Drive Link](https://drive.google.com/file/d/1NsRa1PvnoOQmJj-Gj4L8msqXcBz_QT3Y/view?usp=sharing).
 
 
 
