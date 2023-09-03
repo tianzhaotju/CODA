@@ -7,7 +7,6 @@ See [Zhao Tian](https://tianzhaotju.github.io/), [Junjie Chen](https://sites.goo
 
 
 - [Overview](#overview)
-  - [Code Structure Transformation](#code-structure-transformation)
   - [Folder Structure](#folder-structure)
 - [Environment Configuration](#environment-configuration)
   - [Docker](#docker)
