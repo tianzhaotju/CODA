@@ -15,7 +15,7 @@ from transformers import (RobertaForMaskedLM, RobertaConfig, RobertaModel, Rober
                           RobertaForSequenceClassification, T5Config, T5ForConditionalGeneration)
 import fasttext
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-warnings.simplefilter(action='ignore', category=FutureWarning) # Only report warning\
+warnings.simplefilter(action='ignore', category=FutureWarning)
 MODEL_CLASSES = {
     'codebert_roberta': (RobertaConfig, RobertaModel, RobertaTokenizer),
     'graphcodebert_roberta': (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
@@ -25,7 +25,6 @@ MODEL_CLASSES = {
 
 def main():
     parser = argparse.ArgumentParser()
-    ## Required parameters
     parser.add_argument("--eval_data_file", default=None, type=str,
                         help="An optional input evaluation data file to evaluate the perplexity on (a text file).")
     parser.add_argument("--cache_dir", default="", type=str,
@@ -37,7 +36,6 @@ def main():
 
     args = parser.parse_args()
     args.device = torch.device("cuda")
-    # Set seed
     args.seed = 123456
     args.number_labels = 66
     args.eval_batch_size = 32
@@ -49,10 +47,10 @@ def main():
     if args.model_name == 'codebert':
         args.output_dir = './saved_models'
         args.model_type = 'codebert_roberta'
-        args.config_name = 'microsoft/codebert-base'
-        args.model_name_or_path = 'microsoft/codebert-base'
-        args.tokenizer_name = 'roberta-base'
-        args.base_model = 'microsoft/codebert-base-mlm'
+        args.config_name = '/root/CODA/microsoft/codebert-base'
+        args.model_name_or_path = '/root/CODA/microsoft/codebert-base'
+        args.tokenizer_name = '/root/CODA/roberta-base'
+        args.base_model = '/root/CODA/microsoft/codebert-base-mlm'
     if args.model_name == 'graphcodebert':
         args.output_dir = './saved_models'
         args.model_type = 'graphcodebert_roberta'
@@ -70,7 +68,6 @@ def main():
         args.model_name_or_path = 'Salesforce/codet5-base-multi-sum'
         args.base_model = 'microsoft/codebert-base-mlm'
     set_seed(args)
-    ## Load Target Model
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
     config = config_class.from_pretrained(args.config_name if args.config_name else args.model_name_or_path,
                                           cache_dir=args.cache_dir if args.cache_dir else None)
@@ -81,7 +78,7 @@ def main():
 
     if args.model_name_or_path == 'codebert':
         if args.block_size <= 0:
-            args.block_size = tokenizer.max_len_single_sentence  # Our input block size will be the max possible for the model
+            args.block_size = tokenizer.max_len_single_sentence
         args.block_size = min(args.block_size, 510)
     if args.model_name_or_path:
         model = model_class.from_pretrained(args.model_name_or_path,
@@ -101,9 +98,7 @@ def main():
     output_dir = os.path.join(args.output_dir, '{}'.format(checkpoint_prefix))  
     model.load_state_dict(torch.load(output_dir))      
     model.to(args.device)
-    # load fasttext
     fasttext_model = fasttext.load_model("../../../fasttext_model.bin")
-    ## Load CodeBERT (MLM) model
     codebert_mlm = RobertaForMaskedLM.from_pretrained(args.base_model)
     tokenizer_mlm = RobertaTokenizer.from_pretrained(args.base_model)
     codebert_mlm.to('cuda')
@@ -114,7 +109,6 @@ def main():
         for line in rf:
             source_codes.append(line.split(' <CODESPLIT> ')[0].strip().replace("\\n", "\n").replace('\"', '"'))
 
-    ## Load Dataset
     if args.model_name == 'codebert':
         eval_dataset = CodeBertTextDataset(tokenizer, args, args.eval_data_file)
     elif args.model_name == 'graphcodebert':
@@ -125,14 +119,10 @@ def main():
     success_attack = 0
     total_cnt = 0
     for index, example in enumerate(eval_dataset):
-        # if index in [6, 36, 37]:
-        #     continue
         code = source_codes[index]
         is_success, final_code, min_gap_prob = attacker.attack(
             example,
-            code,
-            identifier=True,
-            structure=True
+            code
         )
         if is_success >= -1:
             total_cnt += 1

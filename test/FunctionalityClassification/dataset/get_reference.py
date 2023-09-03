@@ -7,8 +7,6 @@ sys.path.append('../../../')
 sys.path.append('../../../python_parser')
 from python_parser.run_parser import get_identifiers, remove_comments_and_docstrings, get_example_batch
 from transformers import (RobertaConfig, RobertaModel, RobertaTokenizer, RobertaForMaskedLM, RobertaForSequenceClassification)
-# sys.path.append('../')
-# sys.path.append('../code')
 from model import CodeBERT, GraphCodeBERT
 from run import CodeBertTextDataset, GraphCodeBertTextDataset
 import torch
@@ -79,16 +77,13 @@ def main():
         args.code_length = 448
         args.data_flow_length = 64
 
-    ## Load Target Model
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
     config = config_class.from_pretrained(args.config_name if args.config_name else args.model_name_or_path, cache_dir=args.cache_dir if args.cache_dir else None)
     config.num_labels = args.number_labels
     tokenizer = tokenizer_class.from_pretrained(args.tokenizer_name,
                                                 do_lower_case=args.do_lower_case,
                                                 cache_dir=args.cache_dir if args.cache_dir else None)
-    # if args.block_size <= 0:
-    #     args.block_size = tokenizer.max_len_single_sentence  # Our input block size will be the max possible for the model
-    # args.block_size = min(args.block_size, 510)
+
     if args.model_name_or_path:
         model = model_class.from_pretrained(args.model_name_or_path,
                                             from_tf=bool('.ckpt' in args.model_name_or_path),
@@ -110,12 +105,10 @@ def main():
     codebert_mlm.to(args.device)
     tokenizer_mlm = RobertaTokenizer.from_pretrained(args.base_model)
 
-    ## Load Dataset
     if args.model_name == 'codebert':
         all_dataset = CodeBertTextDataset(tokenizer, args, args.all_data_file)
     elif args.model_name == 'graphcodebert':
         all_dataset = GraphCodeBertTextDataset(tokenizer, args, args.all_data_file)
-    # Load original source codes
     source_codes = []
     with open(args.all_data_file) as rf:
         for line in rf:
@@ -160,8 +153,6 @@ def main():
             np.save('./%s_all_subs/%s_%s' % (args.model_name, str(orig_label), str(index)), embeddings.cpu().numpy())
             all_labels[true_label].append({'code': code, 'embeddings_index': index, 'variable_name': variable_name, 'function_name': function_name})
             count += 1
-            # if index > 10:
-            #     break
         print(count, len(all_dataset), count/len(all_dataset))
         wf.write(json.dumps(all_labels) + '\n')
 

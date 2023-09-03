@@ -1,4 +1,6 @@
 # CODA
+***News: we are updating the latest code!***
+
 To improve test effectiveness on deep code models, we propose a novel perspective by exploiting the code differences between reference inputs and the target input to guide the generation of adversarial examples. From this perspective, we design CODA, which reduces the ingredient space as the one constituted by structure and identifier differences and designs equivalent structure transformations and identifier renaming transformations to preserve original semantics. We conducted an extensive study on 15 subjects. The results demonstrate that CODA reveals more faults with less time than the state-of-the-art techniques (i.e., CARROT and ALERT), and confirm the capability of enhancing the model robustness.
 
 See [Zhao Tian](https://tianzhaotju.github.io/), [Junjie Chen](https://sites.google.com/site/junjiechen08/), et al. "[Code Difference Guided Adversarial Example Generation for Deep Code Models](https://arxiv.org/abs/2301.02412)." The 38th IEEE/ACM International Conference on Automated Software Engineering (ASE'23).
@@ -21,46 +23,6 @@ See [Zhao Tian](https://tianzhaotju.github.io/), [Junjie Chen](https://sites.goo
 <img src="./figs/overview.png" alt="drawing" width="800">
 
 --- ---
-
-
-
-### Code Structure Transformation
-The descriptions and examples of code structure transformation rules in CODA.
-> 1. ***R1-loop***: equivalent transformation among for structure and while structure
-> > (1) `while` loop → `for` loop
-> >   
-> > (2) `for` loop → `while` loop
-> 2. ***R2-branch***: equivalent transformation between if-else(-if) structure and if-if structure
-> > (1) `if-else-(if)`  → `if-if` 
-> >   
-> > (2) `if-if`  → `if-else-(if)` 
-> 3. ***R3-calculation***: equivalent numerical calculation transformation, e.g., ++, --, +=, -=, *=, /=, %=, <<=, >>=, &=, |= , ˆ =
-> > (1) `i++`  ↔ `i = i + 1` 
-> >
-> > (2) `i--`  ↔ `i = i - 1` 
-> >
-> > (3) `i += j`  ↔ `i = i + j` 
-> >
-> > (4) `i -= j`  ↔ `i = i - j` 
-> >
-> > (5) `i *= j`  ↔ `i = i * j` 
-> >
-> > (6) `i /= j`  ↔ `i = i / j` 
-> >
-> > (7) `i %= j`  ↔ `i = i % j` 
-> >
-> > (8) `i <<= j`  ↔ `i = i << j` 
-> >
-> > (9) `i >>= j`  ↔ `i = i >> j` 
-> >
-> > (10) `i &= j`  ↔ `i = i & j` 
-> >
-> > (11) `i |= j`  ↔ `i = i | j` 
-> >
-> > (12) `i ^= j`  ↔ `i = i ^ j` 
-> 4. ***R4-constant***: equivalent transformation between a constant and a variable assigned by the same constant
-> > (1) Any literal expression (string, number, character, or boolean) can be replaced with a constant variable with the same value: `if("Hello, World!");` ↔ `String i = "Hello, World!"; println(i);`
-
 
 
 ### Folder Structure
@@ -107,22 +69,22 @@ The descriptions and examples of code structure transformation rules in CODA.
 Under each subject's folder in `test/` (`AuthorshipAttribution/`, `CloneDetection/`, `DefectPrediction/`, `FunctionalityClassification/`, and `VulnerabilityPrediction/`), there are two folders (`code/` and `dataset/`) and one file (`README.md`). The original dataset and data processing programs (`get_reference.py`) are stored in the `dataset/` directory. The `code/` directory contains the test codes (`test.py` and `attacker.py`). The `README.md` file contains commands for data processing and testing. 
 In the `python_parser/` directory, there is tree-sitter, a parse tree generation tool. And we use this tool to implement parsing tools in multiple programming languages (`C/C++`, `Java`, and `Python`).
 
-
+--- --- ---
 
 ## Environment Configuration
 ### Docker
 Our experiments were conducted under Ubuntu 20.04. 
-We have made a ready-to-use docker image for this experiment.
-And you can also find all the fine-tuned models and datasets.
+We have made a ready-to-use docker image for this experiment. 
+And you can also find all the datasets in the docker.
 
 ```shell
-docker pull anonymous4open/coda:v1.4
+docker pull tianzhao1020/coda:v1.6
 ```
 Then, assuming you have NVIDIA GPUs, you can create a container using this docker image. 
 An example:
 
 ```shell
-docker run --name=coda --gpus all -it --mount type=bind,src=/home/coda,dst=/workspace anonymous4open/coda:v1.4
+docker run --name=coda --gpus all -it --mount type=bind,src=/home/coda,dst=/workspace tianzhao1020/coda:v1.6
 ```
 
 ### Subjects
@@ -143,7 +105,7 @@ Run python test.py in each directory to test the deep code models.
 E.g., run the following commands to test the CodeBERT model on Authorship Attribution.
 
 ```shell
-cd /root/Attack/CODA/AuthorshipAttribution/code/;
+cd /root/CODA/test/AuthorshipAttribution/code/;
 CUDA_VISIBLE_DEVICES=0 python test.py --eval_data_file=../dataset/data_folder/processed_gcjpy/valid.txt --model_name=codebert;
 ```
 

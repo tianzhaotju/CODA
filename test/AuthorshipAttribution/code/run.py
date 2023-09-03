@@ -34,7 +34,6 @@ dfg_function = {
     'c': DFG_c,
 }
 
-#load parsers
 parsers = {}
 for lang in dfg_function:
     LANGUAGE = Language('../../../python_parser/parser_folder/my-languages.so', lang)
@@ -44,15 +43,12 @@ for lang in dfg_function:
     parsers[lang] = parser
 
 
-# remove comments, tokenize code and extract dataflow
 def extract_dataflow(code, parser, lang):
-    #remove comments
     code = code.replace("\\n", "\n")
     try:
         code = remove_comments_and_docstrings(code, lang)
     except:
         pass
-    #obtain dataflow
     if lang == "php":
         code = "<?php"+code+"?>"
     try:
@@ -86,7 +82,6 @@ def extract_dataflow(code, parser, lang):
 
 
 class CodeBertInputFeatures(object):
-    """A single training/test features for a example."""
     def __init__(self, input_tokens, input_ids, idx, label):
         self.input_tokens = input_tokens
         self.input_ids = input_ids
@@ -95,7 +90,6 @@ class CodeBertInputFeatures(object):
 
 
 class GraphCodeBertInputFeatures(object):
-    """A single training/test features for a example."""
     def __init__(self, input_tokens, input_ids, position_idx, dfg_to_code, dfg_to_dfg, label):
         self.input_tokens = input_tokens
         self.input_ids = input_ids
@@ -106,7 +100,6 @@ class GraphCodeBertInputFeatures(object):
 
 
 class CodeT5InputFeatures(object):
-    """A single training/test features for a example."""
     def __init__(self, input_tokens, input_ids, idx, label):
         self.input_tokens = input_tokens
         self.input_ids = input_ids
@@ -228,24 +221,18 @@ class GraphCodeBertTextDataset(Dataset):
         return len(self.examples)
 
     def __getitem__(self, item):
-        # calculate graph-guided masked function
         attn_mask = np.zeros((self.args.code_length + self.args.data_flow_length,
                               self.args.code_length + self.args.data_flow_length), dtype=np.bool)
-        # calculate begin index of node and max length of input
         node_index = sum([i > 1 for i in self.examples[item].position_idx])
         max_length = sum([i != 1 for i in self.examples[item].position_idx])
-        # sequence can attend to sequence
         attn_mask[:node_index, :node_index] = True
-        # special tokens attend to all tokens
         for idx, i in enumerate(self.examples[item].input_ids):
             if i in [0, 2]:
                 attn_mask[idx, :max_length] = True
-        # nodes attend to code tokens that are identified from
         for idx, (a, b) in enumerate(self.examples[item].dfg_to_code):
             if a < node_index and b < node_index:
                 attn_mask[idx + node_index, a:b] = True
                 attn_mask[a:b, idx + node_index] = True
-        # nodes attend to adjacent nodes
         for idx, nodes in enumerate(self.examples[item].dfg_to_dfg):
             for a in nodes:
                 if a + node_index < len(self.examples[item].position_idx):

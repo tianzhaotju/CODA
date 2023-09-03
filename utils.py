@@ -36,8 +36,7 @@ c_keywords = ["auto", "break", "case", "char", "const", "continue",
 c_macros = ["NULL", "_IOFBF", "_IOLBF", "BUFSIZ", "EOF", "FOPEN_MAX", "TMP_MAX",
               "FILENAME_MAX", "L_tmpnam", "SEEK_CUR", "SEEK_END", "SEEK_SET",
               "NULL", "EXIT_FAILURE", "EXIT_SUCCESS", "RAND_MAX", "MB_CUR_MAX"]
-c_special_ids = ["main",  # main function
-                   "stdio", "cstdio", "stdio.h",
+c_special_ids = ["main", "stdio", "cstdio", "stdio.h",
                    "size_t", "FILE", "fpos_t", "stdin", "stdout", "stderr",
                    "remove", "rename", "tmpfile", "tmpnam", "fclose", "fflush",
                    "fopen", "freopen", "setbuf", "setvbuf", "fprintf", "fscanf",
@@ -143,7 +142,6 @@ def is_valid_variable_c(name: str) -> bool:
 
 
 def is_valid_variable_name(name: str, lang: str) -> bool:
-    # check if matches language keywords
     if lang == 'python':
         return is_valid_variable_python(name)
     elif lang == 'c':
@@ -188,9 +186,7 @@ def get_identifier_posistions_from_code(words_list: list, variable_names: list) 
 
 
 def get_bpe_substitues(substitutes, tokenizer, mlm_model):
-    # substitutes L, k
-    substitutes = substitutes[0:12, 0:4]  # maximum BPE candidates
-    # find all possible candidates
+    substitutes = substitutes[0:12, 0:4]
     all_substitutes = []
     for i in range(substitutes.size(0)):
         if len(all_substitutes) == 0:
@@ -202,14 +198,13 @@ def get_bpe_substitues(substitutes, tokenizer, mlm_model):
                 for j in substitutes[i]:
                     lev_i.append(all_sub + [int(j)])
             all_substitutes = lev_i
-    # all substitutes  list of list of token-id (all candidates)
     c_loss = nn.CrossEntropyLoss(reduction='none')
-    all_substitutes = torch.tensor(all_substitutes)  # [ N, L ]
+    all_substitutes = torch.tensor(all_substitutes)
     all_substitutes = all_substitutes[:24].to('cuda')
     N, L = all_substitutes.size()
-    word_predictions = mlm_model(all_substitutes)[0]  # N L vocab-size
-    ppl = c_loss(word_predictions.view(N * L, -1), all_substitutes.view(-1))  # [ N*L ]
-    ppl = torch.exp(torch.mean(ppl.view(N, L), dim=-1))  # N
+    word_predictions = mlm_model(all_substitutes)[0]
+    ppl = c_loss(word_predictions.view(N * L, -1), all_substitutes.view(-1))
+    ppl = torch.exp(torch.mean(ppl.view(N, L), dim=-1))
     _, word_list = torch.sort(ppl)
     word_list = [all_substitutes[i] for i in word_list]
     final_words = []
@@ -221,10 +216,8 @@ def get_bpe_substitues(substitutes, tokenizer, mlm_model):
 
 
 def get_substitues(substitutes, tokenizer, mlm_model, use_bpe, substitutes_score=None, threshold=3.0):
-    # substitues L,k
-    # from this matrix to recover a word
     words = []
-    sub_len, k = substitutes.size()  # sub-len, k
+    sub_len, k = substitutes.size()
     if sub_len == 0:
         return words
     elif sub_len == 1:
@@ -353,9 +346,6 @@ __parser__ = None
 
 
 def tokens2seq(_tokens):
-    '''
-    Return the source code, given the token sequence.
-    '''
     seq = ""
     for t in _tokens:
         if t == "<INT>":
@@ -378,9 +368,6 @@ def tokens2seq(_tokens):
 
 
 def getAST(_seq=""):
-    '''
-    Return the AST of a c/c++ file.
-    '''
     global __parser__
     if __parser__ is None:
         __parser__ = pycparser.CParser()
@@ -389,9 +376,6 @@ def getAST(_seq=""):
 
 
 def getDecl(_seq="", _syms={}):
-    '''
-    Return all declaration names in an AST.
-    '''
     _node = getAST(_seq)
     if isinstance(_node, pycparser.c_ast.Decl):
         if isinstance(_node.children()[0][1], pycparser.c_ast.TypeDecl):
@@ -419,9 +403,6 @@ def getDecl(_seq="", _syms={}):
 
 
 def isUID(_text=""):
-    '''
-    Return if a token is a UID.
-    '''
     _text = _text.strip()
     if _text == '':
         return False
@@ -449,9 +430,6 @@ def isUID(_text=""):
 
 
 def getUID(_tokens=[], uids=[]):
-    '''
-    Return all UIDs and their indeces, given a token sequence.
-    '''
     ids = {}
     for i, t in enumerate(_tokens):
         if isUID(t) and t in uids[0].keys():
@@ -482,24 +460,18 @@ class GraphCodeDataset(Dataset):
         return len(self.examples)
 
     def __getitem__(self, item):
-        #calculate graph-guided masked function
         attn_mask = np.zeros((self.args.code_length+self.args.data_flow_length,
                             self.args.code_length+self.args.data_flow_length), dtype=np.bool)
-        #calculate begin index of node and max length of input
-        node_index = sum([i>1 for i in self.examples[item].position_idx])
-        max_length = sum([i!=1 for i in self.examples[item].position_idx])
-        #sequence can attend to sequence
+        node_index = sum([i > 1 for i in self.examples[item].position_idx])
+        max_length = sum([i != 1 for i in self.examples[item].position_idx])
         attn_mask[:node_index,:node_index] = True
-        #special tokens attend to all tokens
         for idx, i in enumerate(self.examples[item].input_ids):
             if i in [0,2]:
                 attn_mask[idx,:max_length]=True
-        #nodes attend to code tokens that are identified from
         for idx, (a, b) in enumerate(self.examples[item].dfg_to_code):
             if a < node_index and b < node_index:
                 attn_mask[idx+node_index, a:b] = True
                 attn_mask[a:b, idx+node_index] = True
-        #nodes attend to adjacent nodes 
         for idx, nodes in enumerate(self.examples[item].dfg_to_dfg):
             for a in nodes:
                 if a+node_index < len(self.examples[item].position_idx):
@@ -530,47 +502,35 @@ class CodePairDataset(Dataset):
         return len(self.examples)
 
     def __getitem__(self, item):
-        #calculate graph-guided masked function
         attn_mask_1= np.zeros((self.args.code_length+self.args.data_flow_length,
                         self.args.code_length+self.args.data_flow_length),dtype=np.bool)
-        #calculate begin index of node and max length of input
-        node_index=sum([i>1 for i in self.examples[item].position_idx_1])
-        max_length=sum([i!=1 for i in self.examples[item].position_idx_1])
-        #sequence can attend to sequence
+        node_index=sum([i > 1 for i in self.examples[item].position_idx_1])
+        max_length=sum([i != 1 for i in self.examples[item].position_idx_1])
         attn_mask_1[:node_index,:node_index]=True
-        #special tokens attend to all tokens
         for idx,i in enumerate(self.examples[item].input_ids_1):
             if i in [0,2]:
                 attn_mask_1[idx,:max_length]=True
-        #nodes attend to code tokens that are identified from
         for idx,(a,b) in enumerate(self.examples[item].dfg_to_code_1):
             if a<node_index and b<node_index:
                 attn_mask_1[idx+node_index,a:b]=True
                 attn_mask_1[a:b,idx+node_index]=True
-        #nodes attend to adjacent nodes 
-        for idx,nodes in enumerate(self.examples[item].dfg_to_dfg_1):
+        for idx, nodes in enumerate(self.examples[item].dfg_to_dfg_1):
             for a in nodes:
                 if a+node_index<len(self.examples[item].position_idx_1):
                     attn_mask_1[idx+node_index,a+node_index]=True  
                     
-        #calculate graph-guided masked function
         attn_mask_2= np.zeros((self.args.code_length+self.args.data_flow_length,
                         self.args.code_length+self.args.data_flow_length),dtype=np.bool)
-        #calculate begin index of node and max length of input
         node_index=sum([i>1 for i in self.examples[item].position_idx_2])
         max_length=sum([i!=1 for i in self.examples[item].position_idx_2])
-        #sequence can attend to sequence
         attn_mask_2[:node_index,:node_index]=True
-        #special tokens attend to all tokens
         for idx,i in enumerate(self.examples[item].input_ids_2):
             if i in [0,2]:
                 attn_mask_2[idx,:max_length]=True
-        #nodes attend to code tokens that are identified from
         for idx,(a,b) in enumerate(self.examples[item].dfg_to_code_2):
             if a<node_index and b<node_index:
                 attn_mask_2[idx+node_index,a:b]=True
                 attn_mask_2[a:b,idx+node_index]=True
-        #nodes attend to adjacent nodes 
         for idx,nodes in enumerate(self.examples[item].dfg_to_dfg_2):
             for a in nodes:
                 if a+node_index<len(self.examples[item].position_idx_2):

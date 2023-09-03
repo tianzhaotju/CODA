@@ -15,7 +15,7 @@ from transformers import (RobertaConfig, RobertaModel, RobertaTokenizer, Roberta
                           RobertaForSequenceClassification, T5Config, T5ForConditionalGeneration)
 import fasttext
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-warnings.simplefilter(action='ignore', category=FutureWarning) # Only report warning
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 MODEL_CLASSES = {
     'codebert_roberta': (RobertaConfig, RobertaModel, RobertaTokenizer),
@@ -37,7 +37,6 @@ def get_code_pairs(args):
 def main():
     parser = argparse.ArgumentParser()
 
-    ## Required parameters
     parser.add_argument("--eval_data_file", default=None, type=str,
                         help="An optional input evaluation data file to evaluate the perplexity on (a text file).")
     parser.add_argument("--cache_dir", default="", type=str,
@@ -47,7 +46,6 @@ def main():
 
     args = parser.parse_args()
     args.device = torch.device("cuda")
-    # Set seed
     args.seed = 123456
     args.eval_batch_size = 32
     args.language_type = 'java'
@@ -58,10 +56,10 @@ def main():
     if args.model_name == 'codebert':
         args.output_dir = './saved_models'
         args.model_type = 'codebert_roberta'
-        args.config_name = 'microsoft/codebert-base'
-        args.model_name_or_path = 'microsoft/codebert-base'
-        args.tokenizer_name = 'roberta-base'
-        args.base_model = 'microsoft/codebert-base-mlm'
+        args.config_name = '/root/CODA/microsoft/codebert-base'
+        args.model_name_or_path = '/root/CODA/microsoft/codebert-base'
+        args.tokenizer_name = '/root/CODA/roberta-base'
+        args.base_model = '/root/CODA/microsoft/codebert-base-mlm'
         args.number_labels = 2
     if args.model_name == 'graphcodebert':
         args.output_dir = './saved_models'
@@ -82,7 +80,6 @@ def main():
         args.base_model = 'microsoft/codebert-base-mlm'
         args.number_labels = 2
 
-    # Set seed
     set_seed(args)
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
     config = config_class.from_pretrained(args.config_name if args.config_name else args.model_name_or_path,
@@ -92,7 +89,7 @@ def main():
                                                 do_lower_case=False,
                                                 cache_dir=args.cache_dir if args.cache_dir else None)
     if args.block_size <= 0:
-        args.block_size = tokenizer.max_len_single_sentence  # Our input block size will be the max possible for the model
+        args.block_size = tokenizer.max_len_single_sentence
     args.block_size = min(args.block_size, tokenizer.max_len_single_sentence)
     if args.model_name_or_path:
         model = model_class.from_pretrained(args.model_name_or_path,
@@ -115,17 +112,13 @@ def main():
     model.to(args.device)
 
     tokenizer_mlm = RobertaTokenizer.from_pretrained(args.base_model)
-    # Load CodeBERT (MLM) model
     codebert_mlm = RobertaForMaskedLM.from_pretrained(args.base_model)
     codebert_mlm.to('cuda')
-    # load fasttext
     fasttext_model = fasttext.load_model("../../../fasttext_model.bin")
     generated_substitutions = json.load(open('../dataset/%s_all_subs.json' % args.model_name, 'r'))
     attacker = Attacker(args, model, tokenizer, tokenizer_mlm, codebert_mlm, fasttext_model, generated_substitutions)
-    ## Load code pairs
     source_codes = get_code_pairs(args)
 
-    ## Load tensor features
     if args.model_name == 'codebert':
         eval_dataset = CodeBertTextDataset(tokenizer, args, args.eval_data_file)
     elif args.model_name == 'graphcodebert':
@@ -136,14 +129,10 @@ def main():
     success_attack = 0
     total_cnt = 0
     for index, example in enumerate(eval_dataset):
-        # if index in [175]:
-        #     continue
         code_pair = source_codes[index]
         is_success, final_code, min_gap_prob = attacker.attack(
             example,
-            code_pair,
-            identifier=True,
-            structure=False
+            code_pair
         )
         if is_success >= -1:
             total_cnt += 1

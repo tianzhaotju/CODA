@@ -7,7 +7,6 @@ import numpy as np
 
 
 class RobertaClassificationHead(nn.Module):
-    """Head for sentence-level classification tasks."""
     def __init__(self, config):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size*2, config.hidden_size)
@@ -15,7 +14,7 @@ class RobertaClassificationHead(nn.Module):
         self.out_proj = nn.Linear(config.hidden_size, 2)
 
     def forward(self, features, **kwargs):
-        x = features[:, 0, :]  # take <s> token (equiv. to [CLS])
+        x = features[:, 0, :]
         x = x.reshape(-1,x.size(-1)*2)
         x = self.dropout(x)
         x = self.dense(x)
@@ -49,12 +48,10 @@ class CodeBERT(nn.Module):
             return prob
 
     def get_results(self, dataset, batch_size, threshold=0.5):
-        '''Given a dataset, return probabilities and labels.'''
         self.query += len(dataset)
         eval_sampler = SequentialSampler(dataset)
         eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=batch_size,num_workers=0,pin_memory=False)
 
-        ## Evaluate Model
         eval_loss = 0.0
         self.eval()
         logits=[] 
@@ -88,7 +85,6 @@ class GraphCodeBERT(nn.Module):
         position_idx = torch.cat((position_idx_1.unsqueeze(1), position_idx_2.unsqueeze(1)), 1).view(bs * 2, l)
         attn_mask = torch.cat((attn_mask_1.unsqueeze(1), attn_mask_2.unsqueeze(1)), 1).view(bs * 2, l, l)
 
-        # embedding
         nodes_mask = position_idx.eq(0)
         token_mask = position_idx.ge(2)
         inputs_embeddings = self.encoder.roberta.embeddings.word_embeddings(inputs_ids)
@@ -109,7 +105,6 @@ class GraphCodeBERT(nn.Module):
             return prob
 
     def get_results(self, dataset, batch_size, threshold=0.5):
-        '''Given a dataset, return probabilities and labels.'''
         self.query += len(dataset)
         eval_sampler = SequentialSampler(dataset)
         eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=batch_size, num_workers=0,

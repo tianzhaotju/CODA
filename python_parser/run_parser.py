@@ -124,7 +124,6 @@ def is_valid_variable_c(name: str) -> bool:
 
 
 def is_valid_variable_name(name: str, lang: str) -> bool:
-    # check if matches language keywords
     if lang == 'python':
         return is_valid_variable_python(name)
     elif lang == 'c':
@@ -144,7 +143,6 @@ dfg_function = {
     'c': DFG_c,
 }
 
-# load parsers
 parsers = {}
 for lang in dfg_function:
     LANGUAGE = Language(path, lang)
@@ -168,7 +166,6 @@ def get_code_tokens(code, lang):
 def extract_dataflow(code, lang):
     parser = parsers[lang]
     code = code.replace("\\n", "\n")
-    # remove comments
     try:
         code = remove_comments_and_docstrings(code, lang)
     except:
@@ -275,12 +272,10 @@ def get_identifiers_ori(code, lang):
 
 def get_identifiers(code, lang, only_code_tokens=False):
     code = code.replace("\\n", "\n")
-    # remove comments
     try:
         code = remove_comments_and_docstrings(code, lang)
     except:
         pass
-    # remove strings
     try:
         code = remove_strings(code)
     except:
@@ -413,7 +408,6 @@ def change_code_style(source_code: str, lang: str, all_variable_name: list, code
     used_identifiers = []
     used_identifiers.extend(source_code_tokens)
     all_variable_name = list(set(all_variable_name) - (set(all_variable_name) & set(used_identifiers)))
-    # 5. Transform Loop to Semantic Equivalent: for <-> while
     if random.random() <= code_style[4][1]:
         if lang in ['c', 'java']:
             source_code_list = source_code.split('\n')
@@ -457,7 +451,6 @@ def change_code_style(source_code: str, lang: str, all_variable_name: list, code
                     new_source_code_list.append(line)
                 i += 1
         all_source_codes.append(source_code)
-    # 1. Replace Literal Expression with Variable: printf('xxx'); <-> String x = 'xxx';printf(x);
     if random.random() <= code_style[0][0]:
         if lang == 'c':
             begin = 0
@@ -507,7 +500,6 @@ def change_code_style(source_code: str, lang: str, all_variable_name: list, code
                     continue
                 if temp_line[:5] == 'print':
                     blank = line[:line.find('print')]
-                    # python 3
                     if temp_line[5] == '(':
                         content = temp_line.split('(')[-1].split(')')[0]
                         if content.find(',') != -1:
@@ -519,7 +511,6 @@ def change_code_style(source_code: str, lang: str, all_variable_name: list, code
                             all_variable_name = all_variable_name[1:]
                         else:
                             all_variable_name[0] += '_'
-                    # python 2
                     elif temp_line[5] == ' ':
                         content = temp_line[6:]
                         if content.find(',') != -1:
@@ -537,7 +528,6 @@ def change_code_style(source_code: str, lang: str, all_variable_name: list, code
                     new_source_code_list.append(line)
             source_code = '\n'.join(new_source_code_list)
         all_source_codes.append(source_code)
-    # 2. Replace Combined Assignment to Equivalent
     if random.random() <= code_style[1][0]:
         if lang in ['c', 'java', 'python']:
             all_combined_assignments = ['+=', '-=', '*=', '/=', '%=', '<<=', '>>=', '&=', '|=', '^=']
@@ -552,7 +542,6 @@ def change_code_style(source_code: str, lang: str, all_variable_name: list, code
                     temp_var = source_code[:index].strip().split('\n')[-1].split(';')[-1].split('(')[-1].split(' ')[-1]
                     source_code = pre_code + temp_var + '=' + temp_var + combined_assignments[:-1] + after_code
         all_source_codes.append(source_code)
-    # 3. Replace Unary Operator with Assignment
     if random.random() <= code_style[2][0]:
         if lang in ['c', 'java']:
             all_unary_operator = ['++', '--']
@@ -569,7 +558,6 @@ def change_code_style(source_code: str, lang: str, all_variable_name: list, code
                     temp_var = source_code[:index].strip().strip().split('\n')[-1].split(';')[-1].split('(')[-1].split(' ')[-1]
                     source_code = pre_code + '=' + temp_var + unary_operator[0] + '1' + after_code
         all_source_codes.append(source_code)
-    # 4. Replace (int, boolean, String)
     if random.random() <= code_style[3][0]:
         if lang == 'c':
             source_code_list = source_code.split('\n')

@@ -45,10 +45,8 @@ def remove_comments_and_docstrings(source,lang):
                 last_col = 0
             if start_col > last_col:
                 out += (" " * (start_col - last_col))
-            # Remove comments:
             if token_type == tokenize.COMMENT:
                 pass
-            # This series of conditionals removes docstrings:
             elif token_type == tokenize.STRING:
                 if prev_toktype != tokenize.INDENT:
                     if prev_toktype != tokenize.NEWLINE:

@@ -1,6 +1,6 @@
 ## Preparing the Dataset
 ```shell
-cd /root/Attack/CODA/FunctionalityClassification/dataset/;
+cd /root/CODA/test/FunctionalityClassification/dataset/;
 
 python get_reference.py \
     --all_data_file=../dataset/all.txt \
@@ -9,11 +9,12 @@ python get_reference.py \
 python get_reference.py \
     --all_data_file=../dataset/all.txt \
     --model_name=graphcodebert;
+
 ```
 
 ## Testing
 ```shell
-cd /root/Attack/CODA/FunctionalityClassification/code/;
+cd /root/CODA/test/FunctionalityClassification/code/;
 
 CUDA_VISIBLE_DEVICES=0 python test.py \
     --eval_data_file=../dataset/test.txt \

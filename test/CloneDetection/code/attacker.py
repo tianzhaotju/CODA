@@ -8,6 +8,7 @@ import numpy as np
 from utils import CodeDataset, CodePairDataset, CodeT5Dataset, _tokenize
 from run_parser import get_identifiers, get_identifiers_ori, get_example, get_example_batch, get_code_style, \
     change_code_style, remove_comments_and_docstrings, extract_dataflow
+from scipy.spatial.distance import cosine as cosine_distance
 
 
 def graphcodebert_convert_code_to_features(code1, code2, tokenizer, label, args):
@@ -79,7 +80,7 @@ class Attacker():
         self.fasttext_model = fasttext_model
         self.substitutions = generated_substitutions
 
-    def attack(self, example, code_pair, identifier=True, structure=True):
+    def attack(self, example, code_pair):
         NUMBER_1 = 256
         NUMBER_2 = 64
         code1 = code_pair[2]
@@ -128,12 +129,15 @@ class Attacker():
         cos = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
         for sub in random_subs:
             embeddings_index = sub['embeddings_index']
-            if self.args.model_name in ['codebert', 'codet5']:
+            if self.args.model_name in ['codebert']:
                 embeddings1 = np.load(
                     '../dataset/codebert_all_subs/%s_%s_%s.npy' % (sub['label'], embeddings_index, '1'))
             elif self.args.model_name in ['graphcodebert']:
                 embeddings1 = np.load(
                     '../dataset/graphcodebert_all_subs/%s_%s_%s.npy' % (sub['label'], embeddings_index, '1'))
+            elif self.args.model_name in ['codet5']:
+                embeddings1 = np.load(
+                    '../dataset/codebert_all_subs/%s_%s_%s.npy' % (sub['label'], embeddings_index, '1'))
             embeddings1 = torch.from_numpy(embeddings1).cuda()
             embeddings2 = get_embeddings(sub['code2'], [], self.tokenizer_mlm, self.codebert_mlm)
             embeddings1 = torch.nn.functional.pad(embeddings1, [0, 0, 0, 512 - np.shape(embeddings1)[1]])
@@ -144,146 +148,114 @@ class Attacker():
 
         substituions = sorted(substituions, key=lambda x: x[1], reverse=True)
         substituions = [x[0] for x in substituions[:NUMBER_2]]
-        # substituions = [[sub['variable_name1'], sub['function_name1'], sub['code1']] for sub in random_subs[:NUMBER_2]]
-        subs_code = [x[2] for x in substituions]
-
+        temp_subs_variable_name = set()
+        temp_subs_function_name = set()
+        subs_code = []
+        for subs in substituions:
+            for i in subs[0]:
+                temp_subs_variable_name.add(i)
+            for i in subs[1]:
+                temp_subs_function_name.add(i)
+            subs_code.append(subs[2])
         min_prob = current_prob
-        if identifier:
-            replace_examples = []
-            all_code = []
-            all_code_csc = []
 
-            for i in range(10):
-                temp_variable_names2 = np.random.choice(variable_names2, size=len(variable_names2), replace=False)
-                temp_code = copy.deepcopy(code1)
-                for j in range(min(len(variable_names1), len(temp_variable_names2))):
-                    temp_code = get_example(temp_code, variable_names1[j], temp_variable_names2[j], "java")
 
-                temp_function_names2 = np.random.choice(function_names2, size=len(function_names2), replace=False)
-                for j in range(min(len(function_names1), len(temp_function_names2))):
-                    temp_code = get_example(temp_code, function_names1[j], temp_function_names2[j], "java")
+        code_style = get_code_style(subs_code, 'java')
+        replace_examples = []
+        all_code_new = []
+        for temp in all_code_csc:
+            try:
+                temp_code_ori = change_code_style(temp, "java", all_variable_name, code_style)[-1]
+            except:
+                temp_code_ori = temp
+            all_code_new.append(temp_code_ori)
+            temp_code = self.tokenizer_tgt.tokenize(" ".join(temp_code_ori.split()))
+            if self.args.model_name == 'codebert':
+                new_feature = codebert_convert_examples_to_features(temp_code,
+                                                                    words2,
+                                                                    example[1].item(),
+                                                                    None, None,
+                                                                    self.tokenizer_tgt,
+                                                                    self.args, None)
+            elif self.args.model_name == 'graphcodebert':
+                new_feature = graphcodebert_convert_code_to_features(temp_code_ori,
+                                                                     code2,
+                                                                     self.tokenizer_tgt,
+                                                                     example[6].item(),
+                                                                     self.args)
+            elif self.args.model_name == 'codet5':
+                new_feature = codet5_convert_examples_to_features(temp_code,
+                                                                  words2,
+                                                                  example[1].item(),
+                                                                  None, None,
+                                                                  self.tokenizer_tgt,
+                                                                  self.args, None)
+            replace_examples.append(new_feature)
+
+        if self.args.model_name == 'codebert':
+            new_dataset = CodeDataset(replace_examples)
+        elif self.args.model_name == 'graphcodebert':
+            new_dataset = CodePairDataset(replace_examples, self.args)
+        elif self.args.model_name == 'codet5':
+            new_dataset = CodeT5Dataset(replace_examples)
+        logits, preds = self.model_tgt.get_results(new_dataset, self.args.eval_batch_size)
+
+        for index, temp_prob in enumerate(logits):
+            invocation_number += 1
+            temp_label = preds[index]
+            if temp_label != orig_label:
+                print("%s SUCCESS! (%.5f => %.5f)" % ('>>', current_prob, temp_prob[orig_label]),
+                      flush=True)
+                return 2, all_code_new[index], current_prob - temp_prob[orig_label]
+            else:
+                if min_prob > temp_prob[orig_label]:
+                    min_prob = temp_prob[orig_label]
+                    code1 = all_code_new[index]
+        print("%s FAIL! (%.5f => %.5f)" % ('>>', current_prob, min_prob), flush=True)
+
+        subs_variable_name = []
+        subs_function_name = []
+        for i in temp_subs_variable_name:
+            subs_variable_name.append([i, self.fasttext_model.get_word_vector(i)])
+        for i in temp_subs_function_name:
+            subs_function_name.append([i, self.fasttext_model.get_word_vector(i)])
+
+        substituions = {}
+        for i in variable_names1:
+            temp = []
+            i_vec = self.fasttext_model.get_word_vector(i)
+            for j in subs_variable_name:
+                if i == j[0]:
+                    continue
+                temp.append([j[0], 1 - cosine_distance(i_vec, j[1])])
+            temp = sorted(temp, key=lambda x: x[1], reverse=True)
+            substituions[i] = [x[0] for x in temp]
+        for i in function_names1:
+            temp = []
+            i_vec = self.fasttext_model.get_word_vector(i)
+            for j in subs_function_name:
+                if i == j[0]:
+                    continue
+                temp.append([j[0], 1 - cosine_distance(i_vec, j[1])])
+            temp = sorted(temp, key=lambda x: x[1], reverse=True)
+            substituions[i] = [x[0] for x in temp]
+        replace_examples = []
+        all_code = []
+        all_code_csc = []
+        current_subs = ['' for i in range(len(variable_names1) + len(function_names1))]
+
+        for i in range(NUMBER_2):
+            temp_code = copy.deepcopy(code1)
+            for j, tgt_word in enumerate(variable_names1):
+                if i >= len(substituions[tgt_word]):
+                    continue
+                if substituions[tgt_word][i] in current_subs:
+                    continue
+                current_subs[j] = substituions[tgt_word][i]
+                temp_code = get_example(temp_code, tgt_word, substituions[tgt_word][i], "java")
                 temp_code_ori = copy.deepcopy(temp_code)
                 all_code.append(temp_code)
-                all_code_csc.append(temp_code)
                 temp_code = self.tokenizer_tgt.tokenize(" ".join(temp_code.split()))
-                if self.args.model_name == 'codebert':
-                    new_feature = codebert_convert_examples_to_features(temp_code,
-                                                               words2,
-                                                               example[1].item(),
-                                                               None, None,
-                                                               self.tokenizer_tgt,
-                                                               self.args, None)
-                elif self.args.model_name == 'graphcodebert':
-                    new_feature = graphcodebert_convert_code_to_features(temp_code_ori,
-                                                           code2,
-                                                           self.tokenizer_tgt,
-                                                           example[6].item(),
-                                                           self.args)
-                elif self.args.model_name == 'codet5':
-                    new_feature = codet5_convert_examples_to_features(temp_code,
-                                                               words2,
-                                                               example[1].item(),
-                                                               None, None,
-                                                               self.tokenizer_tgt,
-                                                               self.args, None)
-                replace_examples.append(new_feature)
-
-            for i in range(1):
-                for subs in substituions:
-                    temp_variable_names2 = np.random.choice(subs[0], size=len(subs[0]), replace=False)
-                    temp_code = copy.deepcopy(code1)
-                    for j in range(min(len(variable_names1), len(temp_variable_names2))):
-                        temp_code = get_example(temp_code, variable_names1[j], temp_variable_names2[j], "java")
-
-                        temp_code_ori = copy.deepcopy(temp_code)
-                        all_code.append(temp_code)
-                        temp_code = self.tokenizer_tgt.tokenize(" ".join(temp_code.split()))
-                        if self.args.model_name == 'codebert':
-                            new_feature = codebert_convert_examples_to_features(temp_code,
-                                                                                words2,
-                                                                                example[1].item(),
-                                                                                None, None,
-                                                                                self.tokenizer_tgt,
-                                                                                self.args, None)
-                        elif self.args.model_name == 'graphcodebert':
-                            new_feature = graphcodebert_convert_code_to_features(temp_code_ori,
-                                                                                 code2,
-                                                                                 self.tokenizer_tgt,
-                                                                                 example[6].item(),
-                                                                                 self.args)
-                        elif self.args.model_name == 'codet5':
-                            new_feature = codet5_convert_examples_to_features(temp_code,
-                                                                                words2,
-                                                                                example[1].item(),
-                                                                                None, None,
-                                                                                self.tokenizer_tgt,
-                                                                                self.args, None)
-                        replace_examples.append(new_feature)
-                        temp_code = temp_code_ori
-
-                    temp_function_names2 = np.random.choice(subs[1], size=len(subs[1]), replace=False)
-                    for j in range(min(len(function_names1), len(temp_function_names2))):
-                        temp_code = get_example(temp_code, function_names1[j], temp_function_names2[j], "java")
-
-                        temp_code_ori = copy.deepcopy(temp_code)
-                        all_code.append(temp_code)
-                        temp_code = self.tokenizer_tgt.tokenize(" ".join(temp_code.split()))
-                        if self.args.model_name == 'codebert':
-                            new_feature = codebert_convert_examples_to_features(temp_code,
-                                                                                words2,
-                                                                                example[1].item(),
-                                                                                None, None,
-                                                                                self.tokenizer_tgt,
-                                                                                self.args, None)
-                        elif self.args.model_name == 'graphcodebert':
-                            new_feature = graphcodebert_convert_code_to_features(temp_code_ori,
-                                                                                 code2,
-                                                                                 self.tokenizer_tgt,
-                                                                                 example[6].item(),
-                                                                                 self.args)
-                        elif self.args.model_name == 'codet5':
-                            new_feature = codet5_convert_examples_to_features(temp_code,
-                                                                                words2,
-                                                                                example[1].item(),
-                                                                                None, None,
-                                                                                self.tokenizer_tgt,
-                                                                                self.args, None)
-                        replace_examples.append(new_feature)
-                        temp_code = temp_code_ori
-                    all_code_csc.append(all_code[-1])
-
-            if len(replace_examples) == 0:
-                return -3, None, None
-
-            if self.args.model_name == 'codebert':
-                new_dataset = CodeDataset(replace_examples)
-            elif self.args.model_name == 'graphcodebert':
-                new_dataset = CodePairDataset(replace_examples, self.args)
-            elif self.args.model_name == 'codet5':
-                new_dataset = CodeT5Dataset(replace_examples)
-            logits, preds = self.model_tgt.get_results(new_dataset, self.args.eval_batch_size)
-
-            final_code = None
-            for index, temp_prob in enumerate(logits):
-                invocation_number += 1
-                temp_label = preds[index]
-                if temp_label != orig_label:
-                    print("%s SUCCESS! (%.5f => %.5f)" % ('>>', current_prob, temp_prob[orig_label]),
-                          flush=True)
-                    return 1, all_code[index], current_prob - temp_prob[orig_label]
-                else:
-                    if min_prob >= temp_prob[orig_label]:
-                        min_prob = temp_prob[orig_label]
-                        final_code = all_code[index]
-            print("%s FAIL! (%.5f => %.5f)" % ('>>', current_prob, min_prob), flush=True)
-        if structure:
-            code_style = get_code_style(subs_code, 'c')
-            replace_examples = []
-            all_code_new = []
-            for temp in all_code_csc:
-                temp_code_ori = change_code_style(temp, "c", all_variable_name, code_style)[-1]
-                all_code_new.append(temp_code_ori)
-                temp_code = self.tokenizer_tgt.tokenize(" ".join(temp_code_ori.split()))
                 if self.args.model_name == 'codebert':
                     new_feature = codebert_convert_examples_to_features(temp_code,
                                                                         words2,
@@ -299,30 +271,71 @@ class Attacker():
                                                                          self.args)
                 elif self.args.model_name == 'codet5':
                     new_feature = codet5_convert_examples_to_features(temp_code,
+                                                                      words2,
+                                                                      example[1].item(),
+                                                                      None, None,
+                                                                      self.tokenizer_tgt,
+                                                                      self.args, None)
+                replace_examples.append(new_feature)
+                temp_code = temp_code_ori
+
+            for j, tgt_word in enumerate(function_names1):
+                if i >= len(substituions[tgt_word]):
+                    continue
+                if substituions[tgt_word][i] in current_subs:
+                    continue
+                current_subs[j + len(variable_names1)] = substituions[tgt_word][i]
+                temp_code = get_example(temp_code, tgt_word, substituions[tgt_word][i], "java")
+                temp_code_ori = copy.deepcopy(temp_code)
+                all_code.append(temp_code)
+                temp_code = self.tokenizer_tgt.tokenize(" ".join(temp_code.split()))
+
+                if self.args.model_name == 'codebert':
+                    new_feature = codebert_convert_examples_to_features(temp_code,
                                                                         words2,
                                                                         example[1].item(),
                                                                         None, None,
                                                                         self.tokenizer_tgt,
                                                                         self.args, None)
+                elif self.args.model_name == 'graphcodebert':
+                    new_feature = graphcodebert_convert_code_to_features(temp_code_ori,
+                                                                         code2,
+                                                                         self.tokenizer_tgt,
+                                                                         example[6].item(),
+                                                                         self.args)
+                elif self.args.model_name == 'codet5':
+                    new_feature = codet5_convert_examples_to_features(temp_code,
+                                                                      words2,
+                                                                      example[1].item(),
+                                                                      None, None,
+                                                                      self.tokenizer_tgt,
+                                                                      self.args, None)
                 replace_examples.append(new_feature)
+                temp_code = temp_code_ori
+            all_code_csc.append(all_code[-1])
 
-            if self.args.model_name == 'codebert':
-                new_dataset = CodeDataset(replace_examples)
-            elif self.args.model_name == 'graphcodebert':
-                new_dataset = CodePairDataset(replace_examples, self.args)
-            elif self.args.model_name == 'codet5':
-                new_dataset = CodeT5Dataset(replace_examples)
-            logits, preds = self.model_tgt.get_results(new_dataset, self.args.eval_batch_size)
+        if len(replace_examples) == 0:
+            return -3, None, None
 
-            for index, temp_prob in enumerate(logits):
-                invocation_number += 1
-                temp_label = preds[index]
-                if temp_label != orig_label:
-                    print("%s SUC! (%.5f => %.5f)" % ('>>', current_prob, temp_prob[orig_label]),
-                          flush=True)
-                    return 2, all_code_new[index], current_prob - temp_prob[orig_label]
-                else:
-                    if min_prob > temp_prob[orig_label]:
-                        min_prob = temp_prob[orig_label]
-            print("%s ACC! (%.5f => %.5f)" % ('>>', current_prob, min_prob), flush=True)
+        if self.args.model_name == 'codebert':
+            new_dataset = CodeDataset(replace_examples)
+        elif self.args.model_name == 'graphcodebert':
+            new_dataset = CodePairDataset(replace_examples, self.args)
+        elif self.args.model_name == 'codet5':
+            new_dataset = CodeT5Dataset(replace_examples)
+        logits, preds = self.model_tgt.get_results(new_dataset, self.args.eval_batch_size)
+
+        final_code = None
+        for index, temp_prob in enumerate(logits):
+            invocation_number += 1
+            temp_label = preds[index]
+            if temp_label != orig_label:
+                print("%s SUCCESS! (%.5f => %.5f)" % ('>>', current_prob, temp_prob[orig_label]),
+                      flush=True)
+                return 1, all_code[index], current_prob - temp_prob[orig_label]
+            else:
+                if min_prob >= temp_prob[orig_label]:
+                    min_prob = temp_prob[orig_label]
+                    final_code = all_code[index]
+        print("%s FAIL! (%.5f => %.5f)" % ('>>', current_prob, min_prob), flush=True)
         return -1, final_code, current_prob - min_prob

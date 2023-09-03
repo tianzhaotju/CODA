@@ -7,7 +7,6 @@ import numpy as np
 
 
 class RobertaClassificationHead(nn.Module):
-    """Head for sentence-level classification tasks."""
     def __init__(self, config):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
@@ -15,7 +14,6 @@ class RobertaClassificationHead(nn.Module):
         self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
 
     def forward(self, features, **kwargs):
-        # take <s> token (equiv. to [CLS])
         x = features[:, 0, :]
         x = self.dropout(x)
         x = self.dense(x)
@@ -51,7 +49,6 @@ class CodeBERT(nn.Module):
         self.query += len(dataset)
         eval_sampler = SequentialSampler(dataset)
         eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=batch_size, num_workers=0, pin_memory=False)
-        ## Evaluate Model
         eval_loss = 0.0
         nb_eval_steps = 0
         self.eval()
@@ -101,7 +98,6 @@ class GraphCodeBERT(nn.Module):
             return prob
 
     def get_results(self, dataset, batch_size):
-        '''Given a dataset, return probabilities and labels.'''
         self.query += len(dataset)
         eval_sampler = SequentialSampler(dataset)
         eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=batch_size, num_workers=0, pin_memory=False)

@@ -113,8 +113,8 @@ def InsAddCandidates(insertDict, maxLen=None):
 
 def InsAdd(insertDict, pos, insertedTokenList):
     suc = True
-    assert insertDict.get(pos) is not None  # this position could be inserted
-    if insertedTokenList in insertDict[pos]:    # can't insert same statement
+    assert insertDict.get(pos) is not None
+    if insertedTokenList in insertDict[pos]:
         suc = False
     else:
         insertDict[pos].append(insertedTokenList)
@@ -154,7 +154,7 @@ def InsResult(tokens, insertDict):
             result += tokenList
     for i, t in enumerate(tokens):
         result.append(t)
-        if insertDict.get(i) is not None:   # so it's a legal insertion position
+        if insertDict.get(i) is not None:
             for tokenList in insertDict[i]:
                 result += tokenList
     return result

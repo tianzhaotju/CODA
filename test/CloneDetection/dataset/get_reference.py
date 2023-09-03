@@ -10,8 +10,6 @@ sys.path.append('../../../python_parser')
 from python_parser.run_parser import get_identifiers, remove_comments_and_docstrings, get_example_batch
 from utils import _tokenize
 from transformers import (RobertaForMaskedLM, RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer, RobertaModel)
-# sys.path.append('../')
-# sys.path.append('../code/')
 from model import CodeBERT, GraphCodeBERT
 from run import CodeBertTextDataset, GraphCodeBertTextDataset
 import numpy as np
@@ -29,10 +27,6 @@ def get_embeddings(code, variables, tokenizer_mlm, codebert_mlm, args):
     for i in variables:
         chromesome[i] = '<unk>'
     new_code = get_example_batch(new_code, chromesome, "java")
-
-    # for tgt_word in variables:
-    #     new_code = get_example(new_code, tgt_word, '<unk>', "c")
-
     _, _, code_tokens = get_identifiers(remove_comments_and_docstrings(new_code, "java"), "java")
     processed_code = " ".join(code_tokens)
     words, sub_words, keys = _tokenize(processed_code, tokenizer_mlm)
@@ -56,7 +50,6 @@ def main():
 
     args = parser.parse_args()
     args.device = torch.device("cuda")
-    # Set seed
     args.seed = 123456
     args.eval_batch_size = 32
     args.language_type = 'java'
@@ -91,7 +84,7 @@ def main():
                                                 do_lower_case=False,
                                                 cache_dir=args.cache_dir if args.cache_dir else None)
     if args.block_size <= 0:
-        args.block_size = tokenizer.max_len_single_sentence  # Our input block size will be the max possible for the model
+        args.block_size = tokenizer.max_len_single_sentence
     args.block_size = min(args.block_size, tokenizer.max_len_single_sentence)
     if args.model_name_or_path:
         model = model_class.from_pretrained(args.model_name_or_path,
@@ -111,7 +104,6 @@ def main():
     model.load_state_dict(torch.load(output_dir))
     model.to(args.device)
 
-    # Load CodeBERT (MLM) model
     codebert_mlm = RobertaForMaskedLM.from_pretrained(args.base_model)
     tokenizer_mlm = RobertaTokenizer.from_pretrained(args.base_model)
     codebert_mlm.to('cuda')
@@ -147,7 +139,6 @@ def main():
                 item["code2"] = url_to_code[url2]
                 item["label"] = label
                 all_data.append(item)
-    # dict_keys(['id1', 'id2', 'code1', 'code2', 'label'])
     print(len(all_data))
     if args.model_name == 'codebert':
         all_examples = CodeBertTextDataset(tokenizer, args, args.all_data_file)
@@ -157,9 +148,7 @@ def main():
     assert len(all_examples) == len(all_data)
     all_labels = {}
     with open(args.store_path, "w") as wf:
-        # for index in tqdm(range(len(all_data))):
         for index in tqdm(range(0, 15000)):
-        # for index in tqdm(range(0, 150)):
             item = all_data[index]
             example = all_examples[index]
 
