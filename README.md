@@ -7,6 +7,7 @@ See [Zhao Tian](https://tianzhaotju.github.io/), [Junjie Chen](https://sites.goo
 
 
 - [Overview](#overview)
+  - [Code Structure Transformation](#code-structure-transformation)
   - [Folder Structure](#folder-structure)
 - [Environment Configuration](#environment-configuration)
   - [Docker](#docker)
@@ -22,6 +23,43 @@ See [Zhao Tian](https://tianzhaotju.github.io/), [Junjie Chen](https://sites.goo
 <img src="./figs/overview.png" alt="drawing" width="800">
 
 --- ---
+
+### Code Structure Transformation
+The descriptions and examples of code structure transformation rules in CODA.
+> 1. ***R1-loop***: equivalent transformation among for structure and while structure
+> > (1) `while` loop → `for` loop
+> >   
+> > (2) `for` loop → `while` loop
+> 2. ***R2-branch***: equivalent transformation between if-else(-if) structure and if-if structure
+> > (1) `if-else-(if)`  → `if-if` 
+> >   
+> > (2) `if-if`  → `if-else-(if)` 
+> 3. ***R3-calculation***: equivalent numerical calculation transformation, e.g., ++, --, +=, -=, *=, /=, %=, <<=, >>=, &=, |= , ˆ =
+> > (1) `i++`  ↔ `i = i + 1` 
+> >
+> > (2) `i--`  ↔ `i = i - 1` 
+> >
+> > (3) `i += j`  ↔ `i = i + j` 
+> >
+> > (4) `i -= j`  ↔ `i = i - j` 
+> >
+> > (5) `i *= j`  ↔ `i = i * j` 
+> >
+> > (6) `i /= j`  ↔ `i = i / j` 
+> >
+> > (7) `i %= j`  ↔ `i = i % j` 
+> >
+> > (8) `i <<= j`  ↔ `i = i << j` 
+> >
+> > (9) `i >>= j`  ↔ `i = i >> j` 
+> >
+> > (10) `i &= j`  ↔ `i = i & j` 
+> >
+> > (11) `i |= j`  ↔ `i = i | j` 
+> >
+> > (12) `i ^= j`  ↔ `i = i ^ j` 
+> 4. ***R4-constant***: equivalent transformation between a constant and a variable assigned by the same constant
+> > (1) Any literal expression (string, number, character, or boolean) can be replaced with a constant variable with the same value: `if("Hello, World!");` ↔ `String i = "Hello, World!"; println(i);`
 
 
 ### Folder Structure
